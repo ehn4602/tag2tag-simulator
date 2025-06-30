@@ -1,5 +1,6 @@
 from math import sqrt, pi
 import scipy.spatial.distance as dist
+from scipy.constants import c
 
 
 class PhysicsEngine:
@@ -27,7 +28,7 @@ class PhysicsEngine:
         p_tx = tx.power
         g_tx = tx.gain
         g_rx = rx.gain
-        wavelength = tx.wavelength
+        wavelength = c/tx.frequency
         distance = dist.euclidean(tx.position, rx.position)
         return p_tx*g_tx*g_rx*((wavelength/(4*pi*distance))**2)
 
