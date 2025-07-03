@@ -4,13 +4,13 @@ from scipy.constants import c
 
 
 class PhysicsEngine:
-    def __init__(self):
+    def __init__(self, exciter):
         """
         Initialize the physics engine.
         """
         # TODO: Figure out what constants should be supplied to the constructor
         # for future use.
-        pass
+        self.exciter = exciter
 
     def power_at_rx(self, tx, rx):
         """
@@ -32,9 +32,9 @@ class PhysicsEngine:
         distance = dist.euclidean(tx.position, rx.position)
         return p_tx*g_tx*g_rx*((wavelength/(4*pi*distance))**2)
 
-    def tag_peak_voltage_output(self, tx, rx):
+    def v_dc(self, tx, rx):
         """
-        Determine the peak voltage output at a tag in volts.
+        Determine the DC voltage output at rx in volts.
 
         Arguments:
         tx -- The transmitter in this relationship. Needs the power, gain,
@@ -46,4 +46,5 @@ class PhysicsEngine:
         The volatage output at the receiver
         """
         power = self.power_tag_rx(tx, tx)
-        return sqrt((rx.resistance*power)/500)
+        v_pk = sqrt((rx.resistance*power)/500)
+        return v_pk/(sqrt(2))
