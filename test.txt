@@ -1,0 +1,23 @@
+resistive_load: 10
+gain: 0
+exciter_power: 50
+exciter:
+alpha 0 0 0 
+beta 5 0 0
+gamma 0 0 5
+delta 5 0 5
+tag:
+mercury 2 2 2
+venus 0 8 -3 
+earth 5 3 5
+mars 7 -1 -2
+jupiter 3 3 3 
+saturn 7 -8 1
+uranus 0 2 4
+neptune -15 -2 -6
+action:
+neptune uranus mpp
+uranus neptune mpp
+jupiter mercury ping
+tag:
+luna 000 00 222
