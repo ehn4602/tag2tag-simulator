@@ -61,8 +61,6 @@ class PhysicsEngine:
         return v_pk/(sqrt(2))
 
     def transmitted_voltage(self, tx, rx) -> float:
-        # TODO Make sure that this is all correct with the professor
-        # See if there's a way to cut back on the assumptions made
         """
         Get's the voltage that is transmitted from a transmitting tag to a
         receiving tag. This takes into account the exciter as well.
@@ -75,12 +73,10 @@ class PhysicsEngine:
         tx_pos = tx.position
         tx_freq = tx.frequency
         tx_wavelen = c/tx_freq
-        tx_refcoef = tx.reflection_coefficientdd
+        tx_refcoef = tx.reflection_coefficient
 
         rx_pos = rx.position
         rx_resist = rx.resistance
-        # TODO This needs to be finalized in terms of how it's handled on the
-        # tag end
 
         d_ex_tx = dist.euclidean(e_pos, tx_pos)
         d_ex_rx = dist.euclidean(e_pos, rx_pos)
