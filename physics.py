@@ -8,7 +8,7 @@ def attenuation(dist: float, wavelength: float,
     """
     Helper function for calculating the attenuation between two antennas
     """
-    return (wavelength/(4 * pi * dist))**2
+    return tx_directivity * rx_directivity * (wavelength/(4 * pi * dist))**2
 
 
 class PhysicsEngine:
