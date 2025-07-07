@@ -9,7 +9,8 @@ from tag import Tag
 CONFIG_PATH = "config.json"
 
 
-def load_config():
+# TODO figure out how to format state machine as JSON 
+def load_json(file_input):
     """Loads config file, gaining information it needs to run
 
     Returns:
@@ -17,20 +18,35 @@ def load_config():
     """
 
     DEFAULT_STATS = {"exciter_power": 500.0, "gain": 0.0, "resistive_load": 50}
-    if os.path.exists(CONFIG_PATH):
-        with open(CONFIG_PATH, "r") as f:
+    if os.path.exists(file_input):
+        with open(file_input, "r") as f:
             raw_data = json.load(f)
 
-        raw_objects = raw_data.get("Objects", {})
-        raw_actions = raw_data.get("Actions", [])
+        if raw_data.get("Format") == "config":
+            raw_objects = raw_data.get("Objects", {})
+            raw_actions = raw_data.get("Actions", [])
 
-        default = raw_data.get("Default")
-        tags = {uid: Tag.from_dict(uid, val) for uid, val in raw_objects.items()}
-        actions = [action for action in raw_actions]
-        return tags, actions, default
+            default = raw_data.get("Default")
+            tags = {uid: Tag.from_dict(uid, val) for uid, val in raw_objects.items()}
+            actions = [action for action in raw_actions]
+            return None,tags, actions, default
+        elif raw_data.get("Format") == "input_machine":   
+            print("input machine loaded")  
+            return None, None, None, None                   # Placeholder 
+        elif raw_data.get("Format") == "processing_machine": 
+            print("processing machine loaded")  
+            return None, None, None, None                   # Placeholder
+        elif raw_data.get("Format") == "output_machine":
+            print("output machine loaded")  
+            return None, None, None, None                  # Placeholder
+        else:
+            print("error: invalid JSON format")
+            sys.exit(1)
+    elif file_input == CONFIG_PATH:
+         return None,{}, [], DEFAULT_STATS
     else:
-        return {}, [], DEFAULT_STATS
-
+        print("error: file doesn't exist")
+        sys.exit(1)
 
 def save_config(objects, actions, default):
     """offloads changes back to JSON file
@@ -42,6 +58,7 @@ def save_config(objects, actions, default):
     with open(CONFIG_PATH, "w") as f:
         json.dump(
             {
+                "Format": "config",
                 "Default": {
                     "exciter_power": default["exciter_power"],  # (mW)
                     "gain": 0,  # (dBi) Isotropic by default
@@ -148,9 +165,12 @@ def load(filepath):
                 if not line:  # line is just a comment
                     continue
                 info = line.lower().split(" ")
-                if info[0] == "object":
-                    tag = Tag(info[1], info[2], info[3], info[4], info[5])
-                    objects[info[2]] = tag
+                if info[0] == "tag":
+                    tag = Tag(info[1], info[0], info[2], info[3], info[4])
+                    objects[info[1]] = tag
+                elif info[0] == "exciter":
+                    tag = Tag(info[1], info[0], info[2], info[3], info[4])
+                    objects[info[1]] = tag
                 elif info[0] == "default":
                     default[info[1]] = float(info[2])
                 elif info[0] == "action":
@@ -163,18 +183,27 @@ def load(filepath):
 
 def main():
 
-    objects, actions, default = load_config()
+    machine, objects, actions, default = load_json(CONFIG_PATH)
     args = parse_args()
 
     if args.load is not None:  # load in a file
-        if args.add:  # appends loaded arguments instead of overwrite
-            add_objects, add_actions, add_default = load(args.load)
-            objects.update(add_objects)
-            default.update(add_default)
-            actions = list(heapq.merge(actions, add_actions, key=lambda x: x[0]))
-        else:  # overwrites previouse saved data
-            objects, actions, default = load(args.load)
-
+        file_type = args.load.split(".")[1]
+        if file_type=="txt":
+            if args.add:  # appends loaded arguments instead of overwrite
+                add_objects, add_actions, add_default = load(args.load)
+                objects.update(add_objects)
+                default.update(add_default)
+                actions = list(heapq.merge(actions, add_actions, key=lambda x: x[0]))
+            else:  # overwrites previouse saved data
+                objects, actions, default = load(args.load)
+        elif file_type == "json":
+            machine, temp_objects,temp_actions,temp_default = load_json(args.load)
+            if(temp_objects is not None or temp_actions is not None or temp_default is not None):
+                objects = temp_objects
+                actions = temp_actions
+                default = temp_default
+        else:
+            print("error: file type not supported")
     if (
         args.tag is not None or args.exciter is not None
     ):  # Creates or move a tag/exciter
