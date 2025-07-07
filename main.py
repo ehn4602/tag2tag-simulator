@@ -2,6 +2,8 @@ import argparse
 import json
 import os
 import sys
+import bisect
+import heapq
 from tag import Tag
 
 CONFIG_PATH = "config.json"
@@ -21,6 +23,7 @@ def load_config():
 
         raw_objects = raw_data.get("Objects", {})
         raw_actions = raw_data.get("Actions", [])
+
         default = raw_data.get("Default")
         tags = {uid: Tag.from_dict(uid, val) for uid, val in raw_objects.items()}
         actions = [action for action in raw_actions]
@@ -106,65 +109,56 @@ def parse_args():
 
     parser.add_argument(
         "--action",
-        nargs=3,
-        metavar=("tx", "rx", "protocol"),
+        nargs=4,
+        metavar=("HH:MM:SS", "tx", "rx", "protocol"),
         help="An action that will be simulated",
     )
     parser.add_argument(
         "--default", nargs=2, metavar=("name", "value"), help="changes a default value"
     )
     parser.add_argument("--load", type=str, help="text file to be loaded in")
+    parser.add_argument(
+        "--add",
+        action="store_true",
+        help="makes loading add onto the existing data rather than overwriting",
+    )
 
     return parser.parse_args()
 
 
-# need to update this to close for incorrect formated files
 def load(filepath):
-    """Loads configs from a text file, easier for users to make then the json config
-
+    """Loads arguments via a text file. Format is the same as arguments
     Args:
         filepath (string): text file to load in
 
     Returns:
-        object,actions,default: information about the simulation configurations
+        objects,actions,default: information about the simulation configuration
     """
+
     default = {}
     actions = []
     objects = {}
     if os.path.exists(filepath):
         with open(filepath, "r") as f:
-            mode = "default"
             lines = f.readlines()
             for line in lines:
-                line = line.strip().lower()
-                if line == "exciter:":
-                    mode = "exciter"
+                line = line.split("#", 1)[
+                    0
+                ].strip()  # remove comments from loading files. Comments start with #
+                if not line:  # line is just a comment
                     continue
-                elif line == "action:":
-                    mode = "action"
-                    continue
-                elif line == "tag:":
-                    mode = "tag"
-                    continue
-                elif ":" in line:  # for default values
-                    mode = "default"
-                    info = line.split(":")
-                    default[info[0]] = float(info[1])
-                    continue
-
-                # if mode wasnt changed, then it will expect a action/tag/exciter
-                if mode == "exciter":
-                    info = line.split()
-                    tag = Tag(info[0], "exciter", info[1], info[2], info[3])
-                    objects[info[0]] = tag
-                elif mode == "tag":
-                    info = line.split()
-                    tag = Tag(info[0], "tag", info[1], info[2], info[3])
-                    objects[info[0]] = tag
-                elif mode == "action":
-                    info = line.split()
-                    actions.append(info[:3])
-        return objects, actions, default
+                info = line.lower().split(" ")
+                if info[0] == "object":
+                    tag = Tag(info[1], info[2], info[3], info[4], info[5])
+                    objects[info[2]] = tag
+                elif info[0] == "default":
+                    default[info[1]] = float(info[2])
+                elif info[0] == "action":
+                    action = info[1:]
+                    times = [a[0] for a in actions]
+                    position = bisect.bisect_left(times, info[1])
+                    actions.insert(position, action)
+            return objects, actions, default
 
 
 def main():
@@ -173,7 +167,13 @@ def main():
     args = parse_args()
 
     if args.load is not None:  # load in a file
-        objects, actions, default = load(args.load)
+        if args.add:  # appends loaded arguments instead of overwrite
+            add_objects, add_actions, add_default = load(args.load)
+            objects.update(add_objects)
+            default.update(add_default)
+            actions = list(heapq.merge(actions, add_actions, key=lambda x: x[0]))
+        else:  # overwrites previouse saved data
+            objects, actions, default = load(args.load)
 
     if (
         args.tag is not None or args.exciter is not None
@@ -225,11 +225,15 @@ def main():
 
     if args.action:  # adds an action
         action = args.action
-        if action[0] not in objects:
-            print("error, unkown tag:", action[0])
-        elif action[1] not in objects:
+        if action[1] not in objects:
             print("error, unkown tag:", action[1])
-        actions.append(args.action)
+        elif action[2] not in objects:
+            print("error, unkown tag:", action[2])
+        else:
+            times = [a[0] for a in actions]
+            position = bisect.bisect_left(times, action[0])
+            actions.insert(position, action)
+            actions.append(args.action)
     save_config(objects, actions, default)
 
 
