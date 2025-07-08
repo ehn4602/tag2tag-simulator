@@ -54,7 +54,7 @@ class PhysicsEngine:
         and position attributes.
 
         Returns:
-        The voltatage output at the receiver
+        The voltage output at the receiver
         """
         power = self.power_tag_rx(tx, tx)
         v_pk = sqrt((rx.resistance * power)/500)
