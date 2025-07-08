@@ -1,0 +1,28 @@
+[
+    {
+        "delay": 100,
+        "event_type": "tag_set_mode",
+        "tag": "mercury",
+        "mode": "listen"
+    },
+    {
+        "delay": 100,
+        "event_type": "tag_set_mode",
+        "tag": "venus",
+        "mode": "transmit",
+        "transmission": "11010110"
+    },
+    {
+        "delay": 150,
+        "tag": "venus",
+        "event_type": "tag_set_mode",
+        "mode": "listen"
+    },
+    {
+        "delay": 150,
+        "event_type": "tag_set_mode",
+        "tag": "mercury",
+        "mode": "transmit",
+        "transmission": "11010110"
+    }
+]
