@@ -73,7 +73,7 @@ class PhysicsEngine:
         tx_pos = tx.position
         tx_freq = tx.frequency
         tx_wavelen = c/tx_freq
-        tx_refcoef = tx.reflection_coefficient
+        tx_refcoef = tx.active_coefficient
 
         rx_pos = rx.position
         rx_resist = rx.resistance
