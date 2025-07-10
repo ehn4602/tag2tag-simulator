@@ -10,8 +10,16 @@ from state_machine import *
 CONFIG_PATH = "./config/config.json"
 STATE_PATH = "./config/state_machines.json"
 
+DEFAULT_STATS = {
+    "exciter_power": 500.0,
+    "gain": 0.0,
+    "resistive_load": 50,
+    "input_machine_id": "UNKNOWN",
+    "proccessing_machine_id": "UNKOWN",
+    "output_machine_id": "UNKNOWN",
+}
 
-# TODO figure out how to format state machine as JSON
+
 def load_json(file_input, serializer, machines=None):
     """Loads config file, gaining information it needs to run
 
@@ -19,10 +27,18 @@ def load_json(file_input, serializer, machines=None):
         tags,events,default: List of information thats stored in JSON file
     """
 
-    DEFAULT_STATS = {"exciter_power": 500.0, "gain": 0.0, "resistive_load": 50}
     if os.path.exists(file_input):
         with open(file_input, "r") as f:
-            raw_data = json.load(f)
+            try:
+                raw_data = json.load(f)
+            except json.JSONDecodeError:
+                if file_input == CONFIG_PATH:
+                    return None, {}, [], DEFAULT_STATS
+                elif file_input == STATE_PATH:
+                    return {}, None, None, None
+                else:
+                    print("error: file doesn't exist")
+                    sys.exit(1)
         format = raw_data.get("Format")
         if format == "config":
             raw_objects = raw_data.get("Objects", {})
@@ -76,6 +92,9 @@ def save_config(machines, objects, events, default, serializer):
                     "exciter_power": default["exciter_power"],  # (mW)
                     "gain": 0,  # (dBi) Isotropic by default
                     "resistive_load": default["resistive_load"],  # (ohms)
+                    "input_machine_id": default["input_machine_id"],
+                    "proccessing_machine_id": default["proccessing_machine_id"],
+                    "output_machine_id": default["output_machine_id"],
                 },
                 "Objects": {id: obj.to_dict() for id, obj in objects.items()},
                 "events": events,
@@ -115,14 +134,27 @@ def parse_obj(vals, tags):
     return id, coords[0], coords[1], coords[2]
 
 
-def parse_default(vals, default):
-    try:
-        val = float(vals[1])
-        default[vals[0]] = val
-    except ValueError as e:
-        print("error: invalid values for default")
-        sys.exit(1)
-    return default
+def parse_default(vals, default, machines):
+    if vals[0] in ["exciter_power", "resistive_load", "gain"]:
+        try:
+            val = float(vals[1])
+            default[vals[0]] = val
+        except ValueError:
+            print("error: invalid values for default")
+            sys.exit(1)
+        return default
+    elif vals[0] in ["input", "proccessing", "output"] and machines is not None:
+        val = ""
+        val += vals[0]
+        val += "_machine_id"
+        if vals[1] in machines:
+            default[val] = vals[1]
+            return default
+        else:
+            print("error: state machine {" + vals[1] + "} does not exist")
+            sys.exit(1)
+    print("error: invalid default argument")
+    sys.exit(1)
 
 
 def parse_args():
@@ -188,7 +220,7 @@ def load_machine(data, serializer):
         return None
 
 
-def load(filepath):
+def load(filepath, serializer):
     """Loads arguments via a text file. Format is the same as arguments
     Args:
         filepath (string): text file to load in
@@ -197,9 +229,10 @@ def load(filepath):
         objects,events,default: information about the simulation configuration
     """
 
-    default = {}
+    default = DEFAULT_STATS
     events = []
     objects = {}
+    machines = {}
     if os.path.exists(filepath):
         with open(filepath, "r") as f:
             lines = f.readlines()
@@ -211,19 +244,40 @@ def load(filepath):
                     continue
                 info = line.lower().split(" ")
                 if info[0] == "tag":
-                    tag = Tag(info[1], info[0], info[2], info[3], info[4])
+                    tag = TagMachine(info[1], info[2:5])
+                    tag.input_machine = default.get("input_machine_id")
+                    tag.processing_machine = default.get("proccessing_machine_id")
+                    tag.output_machine = default.get("output_machine_id")
                     objects[info[1]] = tag
                 elif info[0] == "exciter":
-                    tag = Tag(info[1], info[0], info[2], info[3], info[4])
+                    tag = TagMachine(info[1], info[2:5])
                     objects[info[1]] = tag
                 elif info[0] == "default":
-                    default[info[1]] = float(info[2])
+                    default = parse_default(info[1:3], default, machines)
+                    # default[info[1]] = float(info[2])
                 elif info[0] == "event":
                     event = info[1:]
                     times = [e[0] for e in events]
                     position = bisect.bisect_left(times, info[1])
                     events.insert(position, event)
-            return objects, events, default
+                elif info[0] == "load":
+                    if os.path.exists(info[1]):
+                        with open(info[1], "r") as f:
+                            try:
+                                raw_data = json.load(f)
+                            except json.JSONDecodeError:
+                                print("Skipping! invalid filepath:", info[1])
+                        if raw_data.get("Format") in [
+                            "input_machine",
+                            "proccessing_machine",
+                            "output_machine",
+                        ]:
+                            machine = load_machine(raw_data, serializer)
+                            machines[machine.id] = machine
+                        else:
+                            print("Skipping! invalid format:", info[1])
+
+            return machines, objects, events, default
 
 
 def main():
@@ -241,12 +295,15 @@ def main():
         file_type = args.load.split(".")[-1]
         if file_type == "txt":
             if args.add:  # appends loaded arguments instead of overwrite
-                add_objects, add_events, add_default = load(args.load)
+                add_machines, add_objects, add_events, add_default = load(
+                    args.load, serializer
+                )
                 objects.update(add_objects)
                 default.update(add_default)
+                machines.update(add_machines)
                 events = list(heapq.merge(events, add_events, key=lambda x: x[0]))
             else:  # overwrites previouse saved data
-                objects, events, default = load(args.load)
+                machines, objects, events, default = load(args.load, serializer)
         elif file_type == "json":
             machine, temp_objects, temp_events, temp_default = load_json(
                 args.load, serializer, machines=machines
@@ -279,8 +336,11 @@ def main():
 
         # tag = Tag(uid, model, x, y, z)
         coordinates = [x, y, z]
-        tag = StateMachine(id, coordinates)
-
+        tag = TagMachine(id, coordinates)
+        if args.tag:
+            tag.input_machine = default.get("input_machine_id")
+            tag.processing_machine = default.get("proccessing_machine_id")
+            tag.output_machine = default.get("output_machine_id")
         # Removed for now
         # tag.resistance = default["resistive_load"]
         # if args.exciter:
@@ -294,7 +354,7 @@ def main():
         objects[id] = tag
 
     if args.default is not None:  # updates default value
-        default = parse_default(args.default, default)
+        default = parse_default(args.default, default, machines)
         print("updated")
 
     if args.remove:  # removes an object (Tag or exciter)
@@ -304,16 +364,27 @@ def main():
             print("unkown id")
 
     if args.print:  ## prints out information
-        if args.print == "objects":
-            for key, value in objects.items():
-                print(f"{key}: {value.to_dict()}")
-        elif args.print == "events":
-            for index, value in enumerate(events, start=1):
-                print(index, value)
-        elif args.print == "default":
-            units = ["mW", "dBi", "Ohm"]  # for display purpose
-            for i, (key, value) in enumerate(default.items()):
-                print(f"{key}: {value} {units[i]}")
+        lower_args = args.print.lower()
+        match lower_args:
+            case "objects":
+                for key, value in objects.items():
+                    print(f"{key}: {value.to_dict()}")
+            case "events":
+                for index, value in enumerate(events, start=1):
+                    print(index, value)
+            case "default":
+                units = ["mW", "dBi", "Ohm"]  # for display purpose
+                for i, (key, value) in enumerate(default.items()):
+                    if i < 3:
+                        print(f"{key}: {value} {units[i]}")
+                    else:
+                        print(f"{key}: {value}")
+            case "states":
+                for key, value in serializer.mappings.items():
+                    print(f"{value}: {key.to_dict(serializer)}")
+            case "machines":
+                for key, value in machines.items():
+                    print(f"{key}: {value.to_dict(serializer,"placeholder")}")
 
     # Events will be reconfigure later to work along side events.json
     if args.event:  # adds an event

@@ -72,8 +72,6 @@ class StateSerializer:
     def __init__(self):
         self.items = []
         self.mappings = {}
-        self.machine_items = []
-        self.machine_mappings = {}
 
     def _map_state_to_id(self, state):
         if state in self.mappings:
@@ -95,21 +93,8 @@ class StateSerializer:
     def serialize(self, state):
         pass
 
-    # def _map_machine_to_id(self, machine):
-    #     if machine in self.machine_mappings:
-    #         return self.machine_mappings[machine]
-    #     else:
-    #         id = len(self.machine_items)
-    #         self.machine_mappings[machine] = id
-    #         self.machine_items.append(machine)
-    #         return id
-
-    # def _map_id_to_machine(self, id):
-    #     return self.machine_items[id]  # needs to be in serlizer first
-
     def to_dict(self):
         return [{"id": i, **state.to_dict(self)} for i, state in enumerate(self.items)]
-        # return {"states": [state.to_dict(self) for state in self.items]}
 
 
 class StateMachine:
@@ -117,7 +102,6 @@ class StateMachine:
         self.state = init_state
         self.init_state = init_state
         self.id = id
-        # self.debug = "default"  # REMOVE
 
     def get_state(self):
         return self.state
@@ -139,7 +123,7 @@ class StateMachine:
 
         init_state_id = serializer._map_state_to_id(self.init_state)
         return {
-            "id": self.id,  # to be implemented (Needed for tagmachines json pov)
+            "id": self.id,
             "type": type,  # to be implemented
             "init_state": init_state_id,
         }
@@ -237,19 +221,19 @@ class TagMachine:
 
     def to_dict(self):
 
-        # TEMPORARY PLACEHOLDER -> TODO need to implement a mechanism for users to pick these machines for their tags
-        input_id, proccess_id, output_id = None, None, None
-        if self.input_machine is None:
-            input_id = "Unknown"
-        else:
+        # TODO implement solution to uknowns when default values are defined
+        input_id, proccess_id, output_id = "Unknown", "Unknown", "Unknown"
+        if isinstance(self.input_machine, str):
+            input_id = self.input_machine
+        elif self.input_machine is not None:
             input_id = self.input_machine.id
-        if self.processing_machine is None:
-            proccess_id = "Unknown"
-        else:
+        if isinstance(self.processing_machine, str):
+            proccess_id = self.processing_machine
+        elif self.processing_machine is not None:
             proccess_id = self.processing_machine.id
-        if self.output_machine is None:
-            output_id = "Unknown"
-        else:
+        if isinstance(self.output_machine, str):
+            output_id = self.output_machine
+        elif self.output_machine is not None:
             output_id = self.output_machine.id
         return {
             "id": self.id,

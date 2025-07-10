@@ -1,6 +1,9 @@
+load ./examples/input.json
+load ./examples/proccess.json
 default resistive_load 10
 default gain 0
 default exciter_power 50 # Comment example, same format as arguments
+default input input_demo 
 exciter alpha 0 0 0 
 exciter beta 5 0 0
 exciter gamma 0 0 5
@@ -9,6 +12,7 @@ tag mercury 2 2 2
 tag venus 0 8 -3 
 tag earth 5 3 5
 tag mars 7 -1 -2
+default proccessing proccess_demo   # at the moment, only new tags generations get updated default, (Should this be changed to make all Unkowns=first declared version?)
 tag jupiter 3 3 3 
 tag saturn 7 -8 1
 tag uranus 0 2 4

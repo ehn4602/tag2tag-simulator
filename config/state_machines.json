@@ -2,14 +2,14 @@
     "Format": "state_machine",
     "state_machines": [
         {
-            "id": "proccess_demo",
-            "type": "placeholder",
-            "init_state": 3
-        },
-        {
             "id": "input_demo",
             "type": "placeholder",
             "init_state": 2
+        },
+        {
+            "id": "proccess_demo",
+            "type": "placeholder",
+            "init_state": 3
         }
     ],
     "states": [
