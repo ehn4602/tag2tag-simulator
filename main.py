@@ -1,9 +1,14 @@
 import argparse
-import json
-import os
-import sys
 import bisect
 import heapq
+import json
+import logging
+import os
+import queue
+import sys
+from logging.handlers import QueueHandler, QueueListener
+from pathlib import Path
+
 from tag import Tag
 
 CONFIG_PATH = "./config/config.json"
@@ -84,7 +89,7 @@ def parse_obj(vals, tags):
     uid = vals[0]
     try:
         coords = [float(v) for v in vals[1:]]
-    except ValueError as e:
+    except ValueError:
         print("error: coordinates given are not numerical values")
         sys.exit(1)
     return uid, coords[0], coords[1], coords[2]
@@ -94,7 +99,7 @@ def parse_default(vals, default):
     try:
         val = float(vals[1])
         default[vals[0]] = val
-    except ValueError as e:
+    except ValueError:
         print("error: invalid values for default")
         sys.exit(1)
     return default
@@ -107,20 +112,24 @@ def parse_args():
         ArgumentParser: Argument parser which holds values of which arguments where given
     """
     parser = argparse.ArgumentParser(description="Tag-to-Tag Network Simulator")
-    parser.add_argument(
-        "--tag",
-        nargs=4,
-        metavar=("UID", "X", "Y", "Z"),
-        required=False,
-        help="place a tag with its Unique ID at coordinates X,Y,Z",
-    ),
-    parser.add_argument(
-        "--exciter",
-        nargs=4,
-        metavar=("UID", "X", "Y", "Z"),
-        required=False,
-        help="place an exciter with its Unique ID at coordinates X,Y,Z",
-    ),
+    (
+        parser.add_argument(
+            "--tag",
+            nargs=4,
+            metavar=("UID", "X", "Y", "Z"),
+            required=False,
+            help="place a tag with its Unique ID at coordinates X,Y,Z",
+        ),
+    )
+    (
+        parser.add_argument(
+            "--exciter",
+            nargs=4,
+            metavar=("UID", "X", "Y", "Z"),
+            required=False,
+            help="place an exciter with its Unique ID at coordinates X,Y,Z",
+        ),
+    )
     parser.add_argument(
         "--remove", type=str, required=False, help="Remove a specific tag based on UID"
     )
@@ -183,10 +192,50 @@ def load(filepath):
             return objects, events, default
 
 
-def main():
+def init_logger(
+    level, filename="tagsim.log", stdout=False
+) -> (logging.Logger, QueueListener):
+    """
+    Initializes a logger that can then be used throughout the program.
 
+    Arguments:
+    level -- The logging level to log at
+    filename -- Name of the file where the log is to be stored, tagsim.log in
+                PWD by default.
+    stdout -- Whether or not to print Log to stdout. False by default.
+
+    Returns: The handle to the logger
+    """
+    log_queue = queue.Queue()
+    qh = QueueHandler(log_queue)
+
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(
+        handlers=[qh],
+        format=f"%(asctime)s::%(levelname)s::{Path(__file__).name}: %(msg)s",
+        level=level,
+    )
+
+    block_handlers = []
+
+    fhandle = logging.FileHandler(filename)
+    block_handlers.append(fhandle)
+
+    if stdout:
+        shandle = logging.StreamHandler()
+        block_handlers.append(shandle)
+
+    ql = QueueListener(log_queue, *block_handlers)
+    ql.start()
+    return logger, ql
+
+
+def main():
     machine, objects, events, default = load_json(CONFIG_PATH)
     args = parse_args()
+
+    # TODO Change this to take in arguments from the command line
+    logger, q_listener = init_logger(logging.INFO)
 
     if args.load is not None:  # load in a file
         file_type = args.load.split(".")[-1]
@@ -246,7 +295,7 @@ def main():
         else:
             print("unkown id")
 
-    if args.print:  ## prints out information
+    if args.print:  # prints out information
         if args.print == "objects":
             for key, value in objects.items():
                 print(f"{key}: {value.to_dict()}")
@@ -271,6 +320,7 @@ def main():
             events.insert(position, event)
             events.append(args.event)
     save_config(objects, events, default)
+    q_listener.stop()
 
 
 if __name__ == "__main__":
