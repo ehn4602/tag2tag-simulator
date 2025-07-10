@@ -192,7 +192,9 @@ def load(filepath):
             return objects, events, default
 
 
-def init_logger(level, filename="tagsim.log", stdout=False):
+def init_logger(
+    level, filename="tagsim.log", stdout=False
+) -> (logging.Logger, QueueListener):
     """
     Initializes a logger that can then be used throughout the program.
 
@@ -231,6 +233,9 @@ def init_logger(level, filename="tagsim.log", stdout=False):
 def main():
     machine, objects, events, default = load_json(CONFIG_PATH)
     args = parse_args()
+
+    # TODO Change this to take in arguments from the command line
+    logger, q_listener = init_logger(logging.INFO)
 
     if args.load is not None:  # load in a file
         file_type = args.load.split(".")[-1]
@@ -315,6 +320,7 @@ def main():
             events.insert(position, event)
             events.append(args.event)
     save_config(objects, events, default)
+    q_listener.stop()
 
 
 if __name__ == "__main__":
