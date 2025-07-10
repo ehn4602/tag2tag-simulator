@@ -5,12 +5,14 @@ import sys
 import bisect
 import heapq
 from tag import Tag
+from state_machine import *
 
 CONFIG_PATH = "./config/config.json"
+STATE_PATH = "./config/state_machines.json"
 
 
 # TODO figure out how to format state machine as JSON
-def load_json(file_input):
+def load_json(file_input, serializer, machines=None):
     """Loads config file, gaining information it needs to run
 
     Returns:
@@ -21,35 +23,45 @@ def load_json(file_input):
     if os.path.exists(file_input):
         with open(file_input, "r") as f:
             raw_data = json.load(f)
-
-        if raw_data.get("Format") == "config":
+        format = raw_data.get("Format")
+        if format == "config":
             raw_objects = raw_data.get("Objects", {})
             raw_events = raw_data.get("events", [])
 
             default = raw_data.get("Default")
-            tags = {uid: Tag.from_dict(uid, val) for uid, val in raw_objects.items()}
+            tags = {
+                id: TagMachine.from_dict(id, val, machines)
+                for id, val in raw_objects.items()
+            }
             events = [event for event in raw_events]
             return None, tags, events, default
-        elif raw_data.get("Format") == "input_machine":
-            print("input machine loaded")
-            return None, None, None, None  # Placeholder
-        elif raw_data.get("Format") == "processing_machine":
-            print("processing machine loaded")
-            return None, None, None, None  # Placeholder
-        elif raw_data.get("Format") == "output_machine":
-            print("output machine loaded")
-            return None, None, None, None  # Placeholder
+        elif format == "state_machine":
+            raw_states = raw_data.get("states", [])
+            raw_machines = raw_data.get("state_machines", [])
+            for state in raw_states:
+                State.from_dict(state.get("id"), state, serializer)
+            machines = {
+                mach["id"]: StateMachine.from_dict(serializer, mach)
+                for mach in raw_machines
+            }
+            return machines, None, None, None
         else:
-            print("error: invalid JSON format")
-            sys.exit(1)
+            machine = load_machine(raw_data, serializer)
+            if machine is None:
+                print("error: invalid JSON format")
+                sys.exit(1)
+            else:
+                return machine, None, None, None
     elif file_input == CONFIG_PATH:
         return None, {}, [], DEFAULT_STATS
+    elif file_input == STATE_PATH:
+        return {}, None, None, None
     else:
         print("error: file doesn't exist")
         sys.exit(1)
 
 
-def save_config(objects, events, default):
+def save_config(machines, objects, events, default, serializer):
     """offloads changes back to JSON file
 
     Args:
@@ -65,8 +77,21 @@ def save_config(objects, events, default):
                     "gain": 0,  # (dBi) Isotropic by default
                     "resistive_load": default["resistive_load"],  # (ohms)
                 },
-                "Objects": {uid: obj.to_dict() for uid, obj in objects.items()},
+                "Objects": {id: obj.to_dict() for id, obj in objects.items()},
                 "events": events,
+            },
+            f,
+            indent=4,
+        )
+    with open("./config/state_machines.json", "w") as f:
+        json.dump(
+            {
+                "Format": "state_machine",
+                "state_machines": [
+                    mach.to_dict(serializer, "placeholder")
+                    for mach in machines.values()
+                ],
+                "states": serializer.to_dict(),
             },
             f,
             indent=4,
@@ -76,18 +101,18 @@ def save_config(objects, events, default):
 def parse_obj(vals, tags):
     """Ensures the tag argument has the correct values
     Args:
-        vals (List): tag UID, and its coordinats
+        vals (List): tag ID, and its coordinats
 
     Returns:
         _type_: _description_
     """
-    uid = vals[0]
+    id = vals[0]
     try:
         coords = [float(v) for v in vals[1:]]
     except ValueError as e:
         print("error: coordinates given are not numerical values")
         sys.exit(1)
-    return uid, coords[0], coords[1], coords[2]
+    return id, coords[0], coords[1], coords[2]
 
 
 def parse_default(vals, default):
@@ -110,19 +135,19 @@ def parse_args():
     parser.add_argument(
         "--tag",
         nargs=4,
-        metavar=("UID", "X", "Y", "Z"),
+        metavar=("ID", "X", "Y", "Z"),
         required=False,
         help="place a tag with its Unique ID at coordinates X,Y,Z",
     ),
     parser.add_argument(
         "--exciter",
         nargs=4,
-        metavar=("UID", "X", "Y", "Z"),
+        metavar=("ID", "X", "Y", "Z"),
         required=False,
         help="place an exciter with its Unique ID at coordinates X,Y,Z",
     ),
     parser.add_argument(
-        "--remove", type=str, required=False, help="Remove a specific tag based on UID"
+        "--remove", type=str, required=False, help="Remove a specific tag based on ID"
     )
     parser.add_argument("--print", type=str, help="Arguments; events,objects")
 
@@ -143,6 +168,24 @@ def parse_args():
     )
 
     return parser.parse_args()
+
+
+def load_machine(data, serializer):
+
+    if (
+        data.get("Format") == "input_machine"
+        or data.get("Format") == "proccessing_machine"
+        or data.get("Format") == "output_machine"
+    ):
+        raw_states = data.get("states", [])
+        for state in raw_states:
+            State.from_dict(state.get("id"), state, serializer)
+        init_state = serializer._map_id_to_state(data.get("init_state"))
+        machine = StateMachine(init_state, data.get("id"))
+        print(data.get("Format"), "successfully loaded")
+        return machine
+    else:
+        return None
 
 
 def load(filepath):
@@ -185,7 +228,13 @@ def load(filepath):
 
 def main():
 
-    machine, objects, events, default = load_json(CONFIG_PATH)
+    serializer = StateSerializer()
+    machines = {}
+    machines, _, _, _ = load_json(STATE_PATH, serializer)
+    _, objects, events, default = load_json(CONFIG_PATH, serializer, machines=machines)
+
+    # if machine is not None:
+    #     machines[machine.id] = machine
     args = parse_args()
 
     if args.load is not None:  # load in a file
@@ -199,7 +248,9 @@ def main():
             else:  # overwrites previouse saved data
                 objects, events, default = load(args.load)
         elif file_type == "json":
-            machine, temp_objects, temp_events, temp_default = load_json(args.load)
+            machine, temp_objects, temp_events, temp_default = load_json(
+                args.load, serializer, machines=machines
+            )
             if (
                 temp_objects is not None
                 or temp_events is not None
@@ -208,6 +259,8 @@ def main():
                 objects = temp_objects
                 events = temp_events
                 default = temp_default
+            if machine is not None:
+                machines[machine.id] = machine
         else:
             print("error: file type not supported")
     if (
@@ -222,19 +275,23 @@ def main():
             model = "exciter"
             obj_args = args.exciter
 
-        uid, x, y, z = parse_obj(obj_args, objects)
+        id, x, y, z = parse_obj(obj_args, objects)
 
-        tag = Tag(uid, model, x, y, z)
-        tag.resistance = default["resistive_load"]
-        if args.exciter:
-            tag.gain = default["gain"]
-            tag.power = default["exciter_power"]
-            tag.model = "exciter"
-        if uid in objects:
-            print(model + ":", uid, "Moved to coordinates", x, y, z)
+        # tag = Tag(uid, model, x, y, z)
+        coordinates = [x, y, z]
+        tag = StateMachine(id, coordinates)
+
+        # Removed for now
+        # tag.resistance = default["resistive_load"]
+        # if args.exciter:
+        #     tag.gain = default["gain"]
+        #     tag.power = default["exciter_power"]
+        #     tag.model = "exciter"
+        if id in objects:
+            print(model + ":", id, "Moved to coordinates", x, y, z)
         else:
-            print(model + ":", uid, "Added at coordinate", x, y, z)
-        objects[uid] = tag
+            print(model + ":", id, "Added at coordinate", x, y, z)
+        objects[id] = tag
 
     if args.default is not None:  # updates default value
         default = parse_default(args.default, default)
@@ -258,7 +315,7 @@ def main():
             for i, (key, value) in enumerate(default.items()):
                 print(f"{key}: {value} {units[i]}")
 
-    # Events will be reconfigure lateer to work along side events.json
+    # Events will be reconfigure later to work along side events.json
     if args.event:  # adds an event
         event = args.event
         if event[1] not in objects:
@@ -270,7 +327,7 @@ def main():
             position = bisect.bisect_left(times, event[0])
             events.insert(position, event)
             events.append(args.event)
-    save_config(objects, events, default)
+    save_config(machines, objects, events, default, serializer)
 
 
 if __name__ == "__main__":

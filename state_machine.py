@@ -44,11 +44,36 @@ class State:
     def does_accept_symbol(self, symbol):
         return symbol in self.transitions
 
+    def to_dict(self, serializer):
+        transitions_serialized = {}
+        for expect_input, (method, state) in self.transitions.items():
+            if isinstance(method, tuple):
+                method_serialized = list(method)
+            else:
+                method_serialized = [method]
+
+            transitions_serialized[expect_input] = [
+                method_serialized,
+                serializer._map_state_to_id(state),
+            ]
+        return {"transitions": transitions_serialized}
+
+    @classmethod
+    def from_dict(cls, id, data, serializer):
+        state = serializer._map_id_to_state(id)
+        for expect_input, (method, output_id) in data["transitions"].items():
+            output_state = serializer._map_id_to_state(output_id)
+            state.add_transition(expect_input, tuple(method), output_state)
+        return state
+
 
 class StateSerializer:
+
     def __init__(self):
         self.items = []
         self.mappings = {}
+        self.machine_items = []
+        self.machine_mappings = {}
 
     def _map_state_to_id(self, state):
         if state in self.mappings:
@@ -70,11 +95,29 @@ class StateSerializer:
     def serialize(self, state):
         pass
 
+    # def _map_machine_to_id(self, machine):
+    #     if machine in self.machine_mappings:
+    #         return self.machine_mappings[machine]
+    #     else:
+    #         id = len(self.machine_items)
+    #         self.machine_mappings[machine] = id
+    #         self.machine_items.append(machine)
+    #         return id
+
+    # def _map_id_to_machine(self, id):
+    #     return self.machine_items[id]  # needs to be in serlizer first
+
+    def to_dict(self):
+        return [{"id": i, **state.to_dict(self)} for i, state in enumerate(self.items)]
+        # return {"states": [state.to_dict(self) for state in self.items]}
+
 
 class StateMachine:
-    def __init__(self, init_state):
+    def __init__(self, init_state, id):
         self.state = init_state
         self.init_state = init_state
+        self.id = id
+        # self.debug = "default"  # REMOVE
 
     def get_state(self):
         return self.state
@@ -91,6 +134,20 @@ class StateMachine:
             return out[1]
         else:
             return [out[0]]
+
+    def to_dict(self, serializer, type):
+
+        init_state_id = serializer._map_state_to_id(self.init_state)
+        return {
+            "id": self.id,  # to be implemented (Needed for tagmachines json pov)
+            "type": type,  # to be implemented
+            "init_state": init_state_id,
+        }
+
+    @classmethod
+    def from_dict(cls, serializer, data):
+        init_state = serializer._map_id_to_state(data.get("init_state"))
+        return StateMachine(init_state, data.get("id"))
 
 
 class ExecuteMachine(StateMachine):
@@ -162,11 +219,13 @@ class ProcessingMachine(StateMachine):
 
 
 class TagMachine:
-    def __init__(self):
-        self.input_machine = StateMachine()
+    def __init__(self, id, Coordinates):
+        self.Coordinates = Coordinates
+        self.id = id
+        self.input_machine = None
         self.input_acc = 0
-        self.processing_machine = StateMachine()
-        self.output_machine = StateMachine()
+        self.processing_machine = None
+        self.output_machine = None
 
     def follow_symbol(self, found_input):
         input_out = self.input_machine.transition(found_input)
@@ -175,3 +234,38 @@ class TagMachine:
             output_out
         if input_out[0][0] == "push_binary":
             pass
+
+    def to_dict(self):
+
+        # TEMPORARY PLACEHOLDER -> TODO need to implement a mechanism for users to pick these machines for their tags
+        input_id, proccess_id, output_id = None, None, None
+        if self.input_machine is None:
+            input_id = "Unknown"
+        else:
+            input_id = self.input_machine.id
+        if self.processing_machine is None:
+            proccess_id = "Unknown"
+        else:
+            proccess_id = self.processing_machine.id
+        if self.output_machine is None:
+            output_id = "Unknown"
+        else:
+            output_id = self.output_machine.id
+        return {
+            "id": self.id,
+            "x": self.Coordinates[0],
+            "y": self.Coordinates[1],
+            "z": self.Coordinates[2],
+            "input_machine_id": input_id,
+            "processing_machine_id": proccess_id,
+            "output_machine_id": output_id,
+        }
+
+    @classmethod
+    def from_dict(cls, id, data, stateMachines):
+        Coords = [data.get("x"), data.get("y"), data.get("z")]
+        tag = TagMachine(id, Coords)
+        tag.input_machine = stateMachines.get(data.get("input_machine_id"))
+        tag.processing_machine = stateMachines.get(data.get("processing_machine_id"))
+        tag.output_machine = stateMachines.get(data.get("output_machine_id"))
+        return tag
