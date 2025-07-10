@@ -1,13 +1,14 @@
 import argparse
 import bisect
-import logging
-from logging.handlers import QueueHandler, QueueListener
 import heapq
 import json
+import logging
 import os
-from pathlib import Path
 import queue
 import sys
+from logging.handlers import QueueHandler, QueueListener
+from pathlib import Path
+
 from tag import Tag
 
 CONFIG_PATH = "./config/config.json"
@@ -88,7 +89,7 @@ def parse_obj(vals, tags):
     uid = vals[0]
     try:
         coords = [float(v) for v in vals[1:]]
-    except ValueError as e:
+    except ValueError:
         print("error: coordinates given are not numerical values")
         sys.exit(1)
     return uid, coords[0], coords[1], coords[2]
@@ -98,7 +99,7 @@ def parse_default(vals, default):
     try:
         val = float(vals[1])
         default[vals[0]] = val
-    except ValueError as e:
+    except ValueError:
         print("error: invalid values for default")
         sys.exit(1)
     return default
@@ -111,20 +112,24 @@ def parse_args():
         ArgumentParser: Argument parser which holds values of which arguments where given
     """
     parser = argparse.ArgumentParser(description="Tag-to-Tag Network Simulator")
-    parser.add_argument(
-        "--tag",
-        nargs=4,
-        metavar=("UID", "X", "Y", "Z"),
-        required=False,
-        help="place a tag with its Unique ID at coordinates X,Y,Z",
-    ),
-    parser.add_argument(
-        "--exciter",
-        nargs=4,
-        metavar=("UID", "X", "Y", "Z"),
-        required=False,
-        help="place an exciter with its Unique ID at coordinates X,Y,Z",
-    ),
+    (
+        parser.add_argument(
+            "--tag",
+            nargs=4,
+            metavar=("UID", "X", "Y", "Z"),
+            required=False,
+            help="place a tag with its Unique ID at coordinates X,Y,Z",
+        ),
+    )
+    (
+        parser.add_argument(
+            "--exciter",
+            nargs=4,
+            metavar=("UID", "X", "Y", "Z"),
+            required=False,
+            help="place an exciter with its Unique ID at coordinates X,Y,Z",
+        ),
+    )
     parser.add_argument(
         "--remove", type=str, required=False, help="Remove a specific tag based on UID"
     )
@@ -185,7 +190,8 @@ def load(filepath):
                     position = bisect.bisect_left(times, info[1])
                     events.insert(position, event)
             return objects, events, default
-          
+
+
 def init_logger(level, filename="tagsim.log", stdout=False):
     """
     Initializes a logger that can then be used throughout the program.
@@ -223,7 +229,6 @@ def init_logger(level, filename="tagsim.log", stdout=False):
 
 
 def main():
-
     machine, objects, events, default = load_json(CONFIG_PATH)
     args = parse_args()
 
@@ -285,7 +290,7 @@ def main():
         else:
             print("unkown id")
 
-    if args.print:  ## prints out information
+    if args.print:  # prints out information
         if args.print == "objects":
             for key, value in objects.items():
                 print(f"{key}: {value.to_dict()}")
@@ -310,7 +315,6 @@ def main():
             events.insert(position, event)
             events.append(args.event)
     save_config(objects, events, default)
-
 
 
 if __name__ == "__main__":
