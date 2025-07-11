@@ -1,6 +1,10 @@
-from typing import List, Optional, Dict
+from __future__ import annotations
+
+from typing import List, Optional, Dict, TYPE_CHECKING
 from abc import ABC, abstractmethod
-from tag import Tag
+
+if TYPE_CHECKING:
+  from tags.tag import Tag
 
 import physics
 

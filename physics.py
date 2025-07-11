@@ -1,7 +1,12 @@
+from __future__ import annotations
+
 from math import sqrt
 import scipy.spatial.distance as dist
 from scipy.constants import c, e, pi
-from tags.tag import Tag
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+  from tags.tag import Tag
 
 
 # TODO: hook this up to the physics engine
