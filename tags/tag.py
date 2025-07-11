@@ -78,6 +78,9 @@ class Tag(Positionable):
     def set_mode_reflect(self, index: int):
         self.set_mode(TagModeReflect(index))
     
+    def get_mode(self):
+        return self.mode
+    
     def read_voltage(self) -> float:
         pass
     
