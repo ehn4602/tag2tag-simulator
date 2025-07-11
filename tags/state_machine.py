@@ -4,37 +4,6 @@ from tag import Tag
 
 import physics
 
-
-# closer to pseudo code than an actual implementation
-# will have to hash this out
-class WorldInterface:
-    def __init__(self, machine):
-        self.machine = machine
-
-    # called by a machine to set its antenna
-    def set_antenna(self, setting):
-        pass
-
-    # called by something in the simulator to update a machine
-    # when another machine adjusts its antenna
-    def notify_update(self):
-        pass
-
-    # like notify_update, but called when a timer set by the machine
-    # goes off
-    def notify_timer(self):
-        pass
-
-    # set the time until a timer update comes in
-    # time == None disables the timer
-    def set_timer(self, time):
-        pass
-
-    # read the voltage at the envelope detector
-    def read_voltage(self):
-        pass
-
-
 class PhysicsInterface:
     def __init__(self, engine: physics.PhysicsEngine):
         self.engine = engine
