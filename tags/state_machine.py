@@ -76,18 +76,18 @@ class TimerBridge:
 
     timer_obj_last: Optional[TimerAcceptor]
 
-    def __init__(self, world_interface: WorldInterface):
-        self.world_interface = world_interface
+    def __init__(self, timer_scheduler: TimerScheduler):
+        self.timer_scheduler = timer_scheduler
         self.timer_obj_last = None
 
     def set_timer(self, obj: TimerAcceptor, timer_val):
         if timer_val is None:
             if self.timer_obj_last == obj:
                 self.timer_obj_last = None
-            self.world_interface.set_timer(None)
+            self.timer_scheduler.set_timer(None)
         else:
             self.timer_obj_last = obj
-            self.world_interface.set_timer(timer_val)
+            self.timer_scheduler.set_timer(timer_val)
 
     def on_timer(self):
         if self.timer_obj_last is not None:
@@ -155,11 +155,16 @@ class StateMachine:
 class ExecuteMachine(StateMachine):
     registers: List[int | float]
 
-    def __init__(self, init_state, tag: Tag):
+    def __init__(self, init_state):
         super(self).__init__(init_state)
-        self.tag = tag
         self.transition_queue = None
         self.registers = [0 for _ in range(8)]
+    
+    def set_tag(self, tag: Tag):
+        """
+        Must be called after __init__ and before anything else
+        """
+        self.tag = tag
 
     def _cmd_mov(self, dst, src):
         """
@@ -220,9 +225,9 @@ class ExecuteMachine(StateMachine):
 
 class InputMachine(ExecuteMachine):
     def __init__(
-        self, init_state, tag: Tag, timer: TimerScheduler, processing_machine: "ProcessingMachine"
+        self, init_state, timer: TimerScheduler, processing_machine: "ProcessingMachine"
     ):
-        super(self).__init__(init_state, tag)
+        super(self).__init__(init_state)
         self.processing_machine = processing_machine
         self.timer = timer
 
@@ -247,9 +252,9 @@ class InputMachine(ExecuteMachine):
 
 class ProcessingMachine(ExecuteMachine):
     def __init__(
-        self, init_state, tag: Tag, output: "OutputMachine", logger: "LoggerBase"
+        self, init_state, output: "OutputMachine", logger: "LoggerBase"
     ):
-        super(self).__init__(init_state, tag)
+        super(self).__init__(init_state)
         self.output = output
         self.logger = logger
 
@@ -269,8 +274,8 @@ class ProcessingMachine(ExecuteMachine):
 
 
 class OutputMachine(ExecuteMachine):
-    def __init__(self, init_state, tag: Tag, timer: TimerScheduler):
-        super(self).__init__(init_state, tag)
+    def __init__(self, init_state, timer: TimerScheduler):
+        super(self).__init__(init_state)
         self.timer = timer
 
     def _cmd_set_antenna(self, n: int):
@@ -294,15 +299,20 @@ class LoggerBase(ABC):
 
 
 class TagMachine:
-    def __init__(self, init_states, tag: Tag, timer: TimerScheduler, logger: LoggerBase):
-        self.output_machine = OutputMachine(init_states[2], tag, timer)
+    def __init__(self, init_states, timer: TimerScheduler, logger: LoggerBase):
+        self.output_machine = OutputMachine(init_states[2], timer)
         self.processing_machine = ProcessingMachine(
-            init_states[1], tag, self.output_machine, logger
+            init_states[1], self.output_machine, logger
         )
         self.input_machine = InputMachine(
-            init_states[0], tag, timer, self.processing_machine
+            init_states[0], timer, self.processing_machine
         )
-        self.timer_bridge = TimerBridge(world_interface)
+        self.timer_bridge = TimerBridge(timer)
+
+    def set_tag(self, tag: Tag):
+        self.input_machine.set_tag(tag)
+        self.processing_machine.set_tag(tag)
+        self.output_machine.set_tag(tag)
 
     def prepare(self):
         self.input_machine.prepare()
@@ -312,11 +322,11 @@ class TagMachine:
     
     def to_dict(self):
         return {
-            "input_machine": self.input_machine.to_dict(),
-            "processing_machine": self.processing_machine.to_dict(),
-            "output_machine": self.output_machine.to_dict()
+            "input_machine": self.input_machine.init_state.to_dict(),
+            "processing_machine": self.processing_machine.init_state.to_dict(),
+            "output_machine": self.output_machine.init_state.to_dict()
             }
     
     @classmethod
-    def from_dict(cls, tag: Tag, logger: LoggerBase, data):
-        return cls((data["input_machine"], data["processing_machine"], data["output_machine"]), tag, logger)
+    def from_dict(cls, timer: TimerScheduler, logger: LoggerBase, data):
+        return cls((State.from_dict(data["input_machine"]), State.from_dict(data["processing_machine"]), State.from_dict(data["output_machine"])), timer, logger)
