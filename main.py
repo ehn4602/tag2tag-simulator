@@ -9,7 +9,7 @@ import sys
 from logging.handlers import QueueHandler, QueueListener
 from pathlib import Path
 
-from tag import Tag
+from tags.tag import Tag, TagMachine
 
 CONFIG_PATH = "./config/config.json"
 
@@ -194,7 +194,7 @@ def load(filepath):
 
 def init_logger(
     level, filename="tagsim.log", stdout=False
-) -> (logging.Logger, QueueListener):
+) -> tuple[logging.Logger, QueueListener]:
     """
     Initializes a logger that can then be used throughout the program.
 
