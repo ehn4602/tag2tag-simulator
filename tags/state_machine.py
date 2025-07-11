@@ -1,5 +1,7 @@
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Self
 from abc import ABC, abstractmethod
+
+from simpy import Environment, Interrupt
 from tag import Tag
 
 import physics
@@ -12,16 +14,82 @@ class PhysicsInterface:
         pass
 
 
-class TimerScheduler(ABC):
-    @abstractmethod
-    def set_timer(self, timer_acceptor: "TimerAcceptor", delay: int):
+class Timer:
+    def __init__(self, timer_acceptor: "TimerAcceptor"):
+        self.timer_acceptor = timer_acceptor
+        self.next_run: Optional[int] = None
+
+    def set_next_run(self, next_run: int):
+        self.next_run = next_run
+
+    def run(self):
+        self.timer_acceptor.on_timer()
+        self.next_run = None
+
+    def __lt__(self, other: Self) -> bool:
+        if self.next_run is None:
+            return False
+        return self.next_run < other.next_run
+
+
+class TimerScheduler:
+
+    def __init__(self, env: Environment):
+        self.env: Environment = env
+        self.timers: List[Timer] = []
+        self.next_run: Optional[int] = None
+        self.process = self.env.process(self.run())
+
+    def add_timer(self, timer_acceptor: "TimerAcceptor"):
+        timer_acceptor_id = len(self.timers)
+        self.timers.add(Timer(timer_acceptor))
+        return timer_acceptor_id
+
+    def run(self):
+        while True:
+            self.timers.sort()
+            next_timer: Timer = self.timers[0]
+            self.next_run = next_timer.next_run
+            yield from self.handle_next_run(next_timer)
+
+    def handle_next_run(self, next_timer: Timer):
+        try:
+            if self.next_run is None:
+                # Big number (idk where python) int.MAX_VALUE is
+                yield self.env.timeout(999999999)
+                return
+            delay = self.next_run - self.env.now
+            yield self.env.timeout(delay)
+        except Interrupt:
+            return
+        next_timer.run()
+
+    def set_timer(self, timer_acceptor_id: int, delay: int):
         """
         Schedules a timer event
         """
-        pass
+        assert delay >= 0
+        timer = self.timers[timer_acceptor_id]
+        timer.next_run = self.env.now + delay
+        if self.next_run is None:
+            return
+        if timer.next_run < self.next_run:
+            self.process.interrupt()
 
 
-class TimerAcceptor:
+# Maybe rename to TimerAccessor
+class TimerAcceptor(ABC):
+
+    def __init__(self, timer: TimerScheduler):
+        self._timer = timer
+        self._timer_acceptor_id = self._timer.add_timer(self)
+
+    def set_timer(self, delay: int):
+        """
+        Schedules a timer event
+        """
+        self._timer.set_timer(self._timer_acceptor_id, self, delay)
+
     @abstractmethod
     def on_timer(self):
         """
