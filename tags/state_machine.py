@@ -14,7 +14,7 @@ class PhysicsInterface:
 
 class TimerScheduler(ABC):
     @abstractmethod
-    def set_timer(self, delay: int):
+    def set_timer(self, timer_acceptor: "TimerAcceptor", delay: int):
         """
         Schedules a timer event
         """
@@ -28,39 +28,6 @@ class TimerAcceptor:
         Called when a timer event goes off
         """
         pass
-
-
-class TimerBridgeChild(TimerScheduler):
-    """
-    Acts as a TimerAcceptor proxy for the last object to schedule a timer
-    """
-
-    parent: "TimerBridge"
-
-
-class TimerBridge:
-    """
-    Acts as a TimerBridgeChild factory
-    """
-
-    timer_obj_last: Optional[TimerAcceptor]
-
-    def __init__(self, timer_scheduler: TimerScheduler):
-        self.timer_scheduler = timer_scheduler
-        self.timer_obj_last = None
-
-    def set_timer(self, obj: TimerAcceptor, timer_val):
-        if timer_val is None:
-            if self.timer_obj_last == obj:
-                self.timer_obj_last = None
-            self.timer_scheduler.set_timer(None)
-        else:
-            self.timer_obj_last = obj
-            self.timer_scheduler.set_timer(timer_val)
-
-    def on_timer(self):
-        if self.timer_obj_last is not None:
-            self.timer_obj_last.on_timer()
 
 
 class State:
@@ -192,7 +159,7 @@ class ExecuteMachine(StateMachine):
         self.transition_queue = None
 
 
-class InputMachine(ExecuteMachine):
+class InputMachine(ExecuteMachine, TimerAcceptor):
     def __init__(
         self, init_state, timer: TimerScheduler, processing_machine: "ProcessingMachine"
     ):
@@ -201,7 +168,7 @@ class InputMachine(ExecuteMachine):
         self.timer = timer
 
     def _cmd_set_timer(self, timer_reg):
-        self.timer.set_timer(self.registers[timer_reg])
+        self.timer.set_timer(self, self.registers[timer_reg])
 
     def _cmd_save_voltage(self, out_reg):
         self.registers[out_reg] = self.tag.read_voltage()
@@ -242,7 +209,7 @@ class ProcessingMachine(ExecuteMachine):
         self.logger.log(self.registers[reg])
 
 
-class OutputMachine(ExecuteMachine):
+class OutputMachine(ExecuteMachine, TimerAcceptor):
     def __init__(self, init_state, timer: TimerScheduler):
         super(self).__init__(init_state)
         self.timer = timer
@@ -251,7 +218,7 @@ class OutputMachine(ExecuteMachine):
         self.tag.set_mode_reflect(n)
 
     def _cmd_set_timer(self, time):
-        self.timer.set_timer(time)
+        self.timer.set_timer(self, time)
 
     def on_recv_int(self, n: int):
         self.registers[7] = n
@@ -276,7 +243,6 @@ class TagMachine:
         self.input_machine = InputMachine(
             init_states[0], timer, self.processing_machine
         )
-        self.timer_bridge = TimerBridge(timer)
 
     def set_tag(self, tag: Tag):
         self.input_machine.set_tag(tag)
@@ -285,9 +251,6 @@ class TagMachine:
 
     def prepare(self):
         self.input_machine.prepare()
-
-    def on_timer(self):
-        self.timer_bridge.on_timer()
     
     def to_dict(self):
         return {
