@@ -236,6 +236,9 @@ class OutputMachine(ExecuteMachine, TimerAcceptor):
 
     def _cmd_set_antenna(self, n: int):
         self.tag.set_mode_reflect(n)
+    
+    def _cmd_set_listen(self):
+        self.tag.set_mode_listen()
 
     def _cmd_set_timer(self, time):
         self.timer.set_timer(self, time)
