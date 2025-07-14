@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import List, Optional, Dict, TYPE_CHECKING
 from abc import ABC, abstractmethod
+from logging import Logger
 
 if TYPE_CHECKING:
   from tags.tag import Tag
@@ -90,6 +91,21 @@ class StateMachine:
             return out[1]
         else:
             return [out[0]]
+
+
+class MachineLogger:
+    def __init__(self, logger: Logger):
+        self.store = ""
+        self.logger = logger
+    
+    def log(self, s: str):
+        newline_index = s.find("\n")
+        while newline_index != -1:
+            self.logger.info(self.store + s[:newline_index])
+            self.store = ""
+            s = s[newline_index + 1:]
+            newline_index = s.find("\n")
+        self.store += s
 
 
 class ExecuteMachine(StateMachine):
@@ -192,7 +208,7 @@ class InputMachine(ExecuteMachine, TimerAcceptor):
 
 class ProcessingMachine(ExecuteMachine):
     def __init__(
-        self, init_state, output: "OutputMachine", logger: "LoggerBase"
+        self, init_state, output: "OutputMachine", logger: MachineLogger
     ):
         super(self).__init__(init_state)
         self.output = output
@@ -210,7 +226,7 @@ class ProcessingMachine(ExecuteMachine):
         self.output.on_recv_int(self.registers[reg])
 
     def _cmd_send_int_log(self, reg):
-        self.logger.log(self.registers[reg])
+        self.logger.log(str(self.registers[reg]))
 
 
 class OutputMachine(ExecuteMachine, TimerAcceptor):
@@ -229,17 +245,8 @@ class OutputMachine(ExecuteMachine, TimerAcceptor):
         self._accept_symbol("on_recv_int")
 
 
-class LoggerBase(ABC):
-    def __init__(self):
-        pass
-
-    @abstractmethod
-    def log(self, out: str):
-        pass
-
-
 class TagMachine:
-    def __init__(self, init_states, timer: TimerScheduler, logger: LoggerBase):
+    def __init__(self, init_states, timer: TimerScheduler, logger: MachineLogger):
         self.output_machine = OutputMachine(init_states[2], timer)
         self.processing_machine = ProcessingMachine(
             init_states[1], self.output_machine, logger
@@ -264,5 +271,5 @@ class TagMachine:
             }
     
     @classmethod
-    def from_dict(cls, timer: TimerScheduler, logger: LoggerBase, data):
+    def from_dict(cls, timer: TimerScheduler, logger: MachineLogger, data):
         return cls((State.from_dict(data["input_machine"]), State.from_dict(data["processing_machine"]), State.from_dict(data["output_machine"])), timer, logger)

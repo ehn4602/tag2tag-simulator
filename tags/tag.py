@@ -7,7 +7,7 @@ from simpy import Environment
 from abc import ABC, abstractmethod
 
 from util.types import Position
-from tags.state_machine import TagMachine, TimerScheduler, LoggerBase
+from tags.state_machine import TagMachine, TimerScheduler
 
 class TagMode(ABC):
     @abstractmethod
