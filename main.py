@@ -13,7 +13,7 @@ from tags.tag import *
 from tags.state_machine import *
 
 CONFIG_PATH = "./config/config.json"
-STATE_PATH = "./config/state_machines.json"
+STATE_PATH = "./config/states.json"
 
 DEFAULT_STATS = {
     "exciter_power": 500.0,
@@ -26,14 +26,13 @@ DEFAULT_STATS = {
 
 
 def load_json(
-    file_input, serializer, machines=None, timer=None, logger=None, environment=None
+    file_input, serializer, timer=None, logger=None, environment=None, default=None
 ):
     """Loads config file, gaining information it needs to run
 
     Returns:
         tags,events,default: List of information thats stored in JSON file
     """
-
     if os.path.exists(file_input):
         with open(file_input, "r") as f:
             try:
@@ -52,7 +51,10 @@ def load_json(
             raw_events = raw_data.get("events", [])
 
             default = raw_data.get("Default")
-            exciter = Exciter.from_dict(environment, raw_data.get("Exciter"))
+            if raw_data.get("Exciter") != "UNDEFINED":
+                exciter = Exciter.from_dict(environment, raw_data.get("Exciter"))
+            else:
+                exciter = None
             tags = {
                 id: Tag.from_dict(environment, logger, timer, id, val, serializer)
                 for id, val in raw_objects.items()
@@ -60,18 +62,12 @@ def load_json(
             events = [event for event in raw_events]
             return exciter, tags, events, default
         elif format == "state_machine":
-            raw_states = raw_data.get("states", [])
-            for state in raw_states:
-                State.from_dict(state, serializer)
-
-            return None
+            state_output = load_states(raw_data, serializer, default)
+            if state_output is not None:
+                return None, None, None, state_output
         else:
-            machine = load_machine(raw_data, serializer)
-            if machine is None:
-                print("error: invalid JSON format")
-                sys.exit(1)
-            else:
-                return machine, None, None, None
+            print("error: invalid JSON format")
+            sys.exit(1)
     elif file_input == CONFIG_PATH:
         return None, {}, [], DEFAULT_STATS
     elif file_input == STATE_PATH:
@@ -79,6 +75,7 @@ def load_json(
     else:
         print("error: file doesn't exist")
         sys.exit(1)
+    return None, None, None, None
 
 
 def save_config(exciter, objects, events, default, serializer):
@@ -100,14 +97,16 @@ def save_config(exciter, objects, events, default, serializer):
                     "proccessing_machine_id": default["proccessing_machine_id"],
                     "output_machine_id": default["output_machine_id"],
                 },
-                "Exciter": Exciter.to_dict(exciter) if exciter is not None else None,
+                "Exciter": (
+                    Exciter.to_dict(exciter) if exciter is not None else "UNDEFINED"
+                ),
                 "Objects": {id: obj.to_dict() for id, obj in objects.items()},
                 "events": events,
             },
             f,
             indent=4,
         )
-    with open("./config/state_machines.json", "w") as f:
+    with open("./config/states.json", "w") as f:
         json.dump(
             {
                 "Format": "state_machine",
@@ -118,7 +117,7 @@ def save_config(exciter, objects, events, default, serializer):
         )
 
 
-def parse_obj(vals, tags):
+def parse_obj(vals):
     """Ensures the tag argument has the correct values
     Args:
         vals (List): tag ID, and its coordinats
@@ -203,20 +202,25 @@ def parse_args():
     return parser.parse_args()
 
 
-def load_machine(data, serializer):
+def load_states(data, serializer, default):
 
-    if (
-        data.get("Format") == "input_machine"
-        or data.get("Format") == "proccessing_machine"
-        or data.get("Format") == "output_machine"
-    ):
-        raw_states = data.get("states", [])
-        for state in raw_states:
-            State.from_dict(state, serializer)
-        init_state = serializer.get_state(data.get("init_state"))
-        machine = StateMachine(init_state)
-        print(data.get("Format"), "successfully loaded")
-        return machine
+    format_type = "State machine"
+    raw_states = data.get("states", [])
+    for state in raw_states:
+        State.from_dict(state, serializer)
+    if "type" in data:
+        format_type = "State machine"
+        if data.get("type") == "input_machine":
+            default["input_machine_id"] = data.get("init_state")
+            format_type = "Input machine"
+        elif data.get("type") == "proccessing_machine":
+            default["proccessing_machine_id"] = data.get("init_state")
+            format_type = "Proccessing machine"
+        elif data.get("type") == "output_machine":
+            default["output_machine_id"] = data.get("init_state")
+            format_type = "Proccessing machine"
+        print(format_type, "successfully loaded")
+        return default
     else:
         return None
 
@@ -243,7 +247,8 @@ def load_txt(filepath, environment, serializer):
                 ].strip()  # remove comments from loading files. Comments start with #
                 if not line:  # line is just a comment
                     continue
-                info = line.lower().split(" ")
+                info = line.split(" ")
+                info[0] = info[0].lower()
                 if info[0] == "tag":
 
                     timer = None  # is this tag specific or global?
@@ -260,9 +265,6 @@ def load_txt(filepath, environment, serializer):
                     )
                     tagmachine = TagMachine(init_states, timer, logger)
                     tag = Tag(environment, info[1], tagmachine, None, info[2:5])
-                    # tag.input_machine = default.get("input_machine_id")
-                    # tag.processing_machine = default.get("proccessing_machine_id")
-                    # tag.output_machine = default.get("output_machine_id")
                     objects[info[1]] = tag
                 elif info[0] == "exciter":
                     exciter = Exciter(environment, info[1], info[2:5])
@@ -280,12 +282,10 @@ def load_txt(filepath, environment, serializer):
                                 raw_data = json.load(f)
                             except json.JSONDecodeError:
                                 print("Skipping! invalid filepath:", info[1])
-                        if raw_data.get("Format") in [
-                            "input_machine",
-                            "proccessing_machine",
-                            "output_machine",
-                        ]:
-                            load_machine(raw_data, serializer)
+                        if raw_data.get("Format") == "state_machine":
+                            states_output = load_states(raw_data, serializer, default)
+                            if states_output is not None:
+                                default = states_output
                         else:
                             print("Skipping! invalid format:", info[1])
 
@@ -402,27 +402,23 @@ def main():
                 )
                 objects.update(add_objects)
                 default.update(add_default)
-                machines.update(add_machines)
+                # machines.update(add_machines)
                 events = list(heapq.merge(events, add_events, key=lambda x: x[0]))
             else:  # overwrites previouse saved data
                 machines, objects, events, default = load_txt(
                     args.load, environment, serializer
                 )
         elif file_type == "json":
-            machine, temp_objects, temp_events, temp_default = load_json(
-                args.load, serializer, machines=machines
+            temp_exciter, temp_objects, temp_events, temp_default = load_json(
+                args.load, serializer, default=default
             )
-            if (
-                temp_objects is not None
-                or temp_events is not None
-                or temp_default is not None
-            ):
+            if temp_objects is not None or temp_events is not None:
                 objects = temp_objects
                 events = temp_events
                 default = temp_default
-            if machine is not None:
-                # machines[machine.id] = machine
-                pass
+                main_exciter = temp_exciter
+            elif temp_default is not None:
+                default = temp_default
         else:
             print("error: file type not supported")
     if args.exciter:
@@ -437,7 +433,7 @@ def main():
             )
             sys.exit(1)
         else:
-            id, x, y, z = parse_obj(args.tag, objects)
+            id, x, y, z = parse_obj(args.tag)
             timer = None  # is this tag specific or global?
             logger = None  # Set up logger later
             init_states = []
@@ -468,7 +464,10 @@ def main():
         lower_args = args.print.lower()
         match lower_args:
             case "objects":
-                print("Exciter: ", main_exciter.to_dict())
+                if main_exciter is not None:
+                    print("Exciter:", main_exciter.to_dict())
+                else:
+                    print("Exciter: Undefined")
                 for key, value in objects.items():
                     print(f"{key}: {value.to_dict()}")
             case "events":

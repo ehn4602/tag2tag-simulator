@@ -1,11 +1,9 @@
-load ./examples/input.json
-load ./examples/proccess.json
+load ./examples/example_machine.json
 default resistive_load 10
 default gain 0
 default exciter_power 50 # Comment example, same format as arguments
-default input 0
-default proccessing 0
-default output 3
+default proccessing A
+default output B
 exciter alpha 0 0 0 
 exciter beta 5 0 0
 exciter gamma 0 0 5

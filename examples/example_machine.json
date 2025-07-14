@@ -1,40 +1,39 @@
 {
-    "Format": "proccessing_machine",
-    "id": "proccess_demo",
-    "type": "proccessing_machine",
-    "init_state": 3,
+    "Format": "state_machine",
+    "type": "input_machine",
+    "init_state": "A",
     "states": [
         {
-            "id": "0",
+            "id": "A",
             "transitions": {
                 "1": [
                     [
                         "A-> Input(1) to B",
                         2
                     ],
-                    "1"
+                    "B"
                 ]
             }
         },
         {
-            "id": "1",
+            "id": "B",
             "transitions": {
                 "0": [
                     [
                         "B-> Input(0) back to A"
                     ],
-                    0
+                    "A"
                 ],
                 "1": [
                     [
                         "B-> Input(1) to C"
                     ],
-                    "2"
+                    "C"
                 ]
             }
         },
         {
-            "id": "2",
+            "id": "C",
             "transitions": {
                 "32": [
                     [
@@ -42,18 +41,18 @@
                         1,
                         2
                     ],
-                    "3"
+                    "D"
                 ]
             }
         },
         {
-            "id": 3,
+            "id": "D",
             "transitions": {
                 "12": [
                     [
                         "d->input(12) to A"
                     ],
-                    "0"
+                    "A"
                 ]
             }
         }

@@ -4,118 +4,91 @@
         "exciter_power": 50.0,
         "gain": 0,
         "resistive_load": 10.0,
-        "input_machine_id": "input_demo",
-        "proccessing_machine_id": "proccess_demo",
-        "output_machine_id": "UNKNOWN"
+        "input_machine_id": "A",
+        "proccessing_machine_id": "A",
+        "output_machine_id": "B"
     },
+    "Exciter": "UNDEFINED",
     "Objects": {
-        "alpha": {
-            "id": "alpha",
-            "x": "0",
-            "y": "0",
-            "z": "0",
-            "input_machine_id": "Unknown",
-            "processing_machine_id": "Unknown",
-            "output_machine_id": "Unknown"
-        },
-        "beta": {
-            "id": "beta",
-            "x": "5",
-            "y": "0",
-            "z": "0",
-            "input_machine_id": "Unknown",
-            "processing_machine_id": "Unknown",
-            "output_machine_id": "Unknown"
-        },
-        "gamma": {
-            "id": "gamma",
-            "x": "0",
-            "y": "0",
-            "z": "5",
-            "input_machine_id": "Unknown",
-            "processing_machine_id": "Unknown",
-            "output_machine_id": "Unknown"
-        },
-        "delta": {
-            "id": "delta",
-            "x": "5",
-            "y": "0",
-            "z": "5",
-            "input_machine_id": "Unknown",
-            "processing_machine_id": "Unknown",
-            "output_machine_id": "Unknown"
-        },
         "mercury": {
-            "id": "mercury",
+            "tag_machine": {
+                "input_machine": "A",
+                "processing_machine": "A",
+                "output_machine": "B"
+            },
             "x": "2",
             "y": "2",
-            "z": "2",
-            "input_machine_id": "input_demo",
-            "processing_machine_id": "UNKOWN",
-            "output_machine_id": "UNKNOWN"
+            "z": "2"
         },
         "venus": {
-            "id": "venus",
+            "tag_machine": {
+                "input_machine": "A",
+                "processing_machine": "A",
+                "output_machine": "B"
+            },
             "x": "0",
             "y": "8",
-            "z": "-3",
-            "input_machine_id": "input_demo",
-            "processing_machine_id": "UNKOWN",
-            "output_machine_id": "UNKNOWN"
+            "z": "-3"
         },
         "earth": {
-            "id": "earth",
+            "tag_machine": {
+                "input_machine": "A",
+                "processing_machine": "A",
+                "output_machine": "B"
+            },
             "x": "5",
             "y": "3",
-            "z": "5",
-            "input_machine_id": "input_demo",
-            "processing_machine_id": "UNKOWN",
-            "output_machine_id": "UNKNOWN"
+            "z": "5"
         },
         "mars": {
-            "id": "mars",
+            "tag_machine": {
+                "input_machine": "A",
+                "processing_machine": "A",
+                "output_machine": "B"
+            },
             "x": "7",
             "y": "-1",
-            "z": "-2",
-            "input_machine_id": "input_demo",
-            "processing_machine_id": "UNKOWN",
-            "output_machine_id": "UNKNOWN"
+            "z": "-2"
         },
         "jupiter": {
-            "id": "jupiter",
+            "tag_machine": {
+                "input_machine": "A",
+                "processing_machine": "A",
+                "output_machine": "B"
+            },
             "x": "3",
             "y": "3",
-            "z": "3",
-            "input_machine_id": "input_demo",
-            "processing_machine_id": "proccess_demo",
-            "output_machine_id": "UNKNOWN"
+            "z": "3"
         },
         "saturn": {
-            "id": "saturn",
+            "tag_machine": {
+                "input_machine": "A",
+                "processing_machine": "A",
+                "output_machine": "B"
+            },
             "x": "7",
             "y": "-8",
-            "z": "1",
-            "input_machine_id": "input_demo",
-            "processing_machine_id": "proccess_demo",
-            "output_machine_id": "UNKNOWN"
+            "z": "1"
         },
         "uranus": {
-            "id": "uranus",
+            "tag_machine": {
+                "input_machine": "A",
+                "processing_machine": "A",
+                "output_machine": "B"
+            },
             "x": "0",
             "y": "2",
-            "z": "4",
-            "input_machine_id": "input_demo",
-            "processing_machine_id": "proccess_demo",
-            "output_machine_id": "UNKNOWN"
+            "z": "4"
         },
         "neptune": {
-            "id": "neptune",
+            "tag_machine": {
+                "input_machine": "A",
+                "processing_machine": "A",
+                "output_machine": "B"
+            },
             "x": "-15",
             "y": "-2",
-            "z": "-6",
-            "input_machine_id": "input_demo",
-            "processing_machine_id": "proccess_demo",
-            "output_machine_id": "UNKNOWN"
+            "z": "-6"
         }
     },
     "events": [
@@ -133,8 +106,8 @@
         ],
         [
             "00:02:17",
-            "mercury",
-            "earth",
+            "Mercury",
+            "Eartlh",
             "ping"
         ],
         [
