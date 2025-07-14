@@ -1,49 +1,7 @@
-from __future__ import annotations
-
 from math import sqrt
-from typing import TYPE_CHECKING
 
-import scipy.spatial.distance as dist
+import scipy.spatial as dist
 from scipy.constants import c, e, pi
-
-if TYPE_CHECKING:
-    from tags.tag import Tag
-
-
-# TODO: hook this up to the physics engine
-class PhysicsEngineWrapper:
-    def __init__(self, tags: set[Tag]):
-        self.tags = tags
-
-    def add_tag(self, tag: Tag):
-        self.tags.add(tag)
-
-    def remove_tag(self, tag: Tag):
-        if tag in self.tags:
-            self.tags.remove(tag)
-
-    def get_received_voltage(self, asking_tag: Tag):
-        # very simple mockup for now
-        acc = 0
-        for tag in self.tags:
-            if (
-                tag is not asking_tag
-                and not tag.get_mode().is_listening()
-                and tag.get_mode().get_index() == 1
-            ):
-                acc = acc + 1
-        return acc
-
-
-def attenuation(
-    dist: float, wavelength: float, tx_directivity=1.0, rx_directivity=1.0
-) -> float:
-    """
-    Helper function for calculating the attenuation between two antennas
-    """
-    num = (4 * pi * dist) ** 2
-    den = tx_directivity * rx_directivity * (wavelength**2)
-    return num / den
 
 
 class PhysicsEngine:
@@ -54,6 +12,16 @@ class PhysicsEngine:
         # TODO: Figure out what constants should be supplied to the constructor
         # for future use.
         self.exciter = exciter
+
+    def attenuation(
+        dist: float, wavelength: float, tx_directivity=1.0, rx_directivity=1.0
+    ) -> float:
+        """
+        Helper function for calculating the attenuation between two antennas
+        """
+        num = (4 * pi * dist) ** 2
+        den = tx_directivity * rx_directivity * (wavelength**2)
+        return num / den
 
     def power_at_rx(self, tx, rx) -> float:
         """
@@ -121,10 +89,10 @@ class PhysicsEngine:
         # Calculate the signal from exciter to tx and rx respectively
         # Passing in 1.0 for both directivities since we're assuming all
         # antennas in the simulation are isotropic at the moment
-        sig_ex_tx = attenuation(d_ex_tx, e_wavlen, 1.0, 1.0) * (
+        sig_ex_tx = self.attenuation(d_ex_tx, e_wavlen, 1.0, 1.0) * (
             e ** (i2pi * d_ex_tx / e_wavlen)
         )
-        sig_ex_rx = attenuation(d_ex_rx, e_wavlen, 1.0, 1.0) * (
+        sig_ex_rx = self.attenuation(d_ex_rx, e_wavlen, 1.0, 1.0) * (
             e ** (i2pi * d_ex_rx / e_wavlen)
         )
 
@@ -132,7 +100,7 @@ class PhysicsEngine:
         sig_tx_rx = (
             sig_ex_tx
             * tx_refcoef
-            * attenuation(d_tx_rx, tx_wavelen, 1.0, 1.0)
+            * self.attenuation(d_tx_rx, tx_wavelen, 1.0, 1.0)
             * (e ** (i2pi * d_tx_rx / tx_wavelen))
         )
 
