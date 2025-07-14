@@ -1,40 +1,47 @@
 from __future__ import annotations
 
 from math import sqrt
-import scipy.spatial.distance as dist
-from scipy.constants import c, e, pi
 from typing import TYPE_CHECKING
 
+import scipy.spatial.distance as dist
+from scipy.constants import c, e, pi
+
 if TYPE_CHECKING:
-  from tags.tag import Tag
+    from tags.tag import Tag
 
 
 # TODO: hook this up to the physics engine
 class PhysicsEngineWrapper:
     def __init__(self, tags: set[Tag]):
         self.tags = tags
-    
+
     def add_tag(self, tag: Tag):
         self.tags.add(tag)
-    
+
     def remove_tag(self, tag: Tag):
         if tag in self.tags:
             self.tags.remove(tag)
-    
+
     def get_received_voltage(self, asking_tag: Tag):
         # very simple mockup for now
         acc = 0
         for tag in self.tags:
-            if tag is not asking_tag and not tag.get_mode().is_listening() and tag.get_mode().get_index() == 1:
+            if (
+                tag is not asking_tag
+                and not tag.get_mode().is_listening()
+                and tag.get_mode().get_index() == 1
+            ):
                 acc = acc + 1
         return acc
 
-def attenuation(dist: float, wavelength: float,
-                tx_directivity=1.0, rx_directivity=1.0) -> float:
+
+def attenuation(
+    dist: float, wavelength: float, tx_directivity=1.0, rx_directivity=1.0
+) -> float:
     """
     Helper function for calculating the attenuation between two antennas
     """
-    return tx_directivity * rx_directivity * (wavelength/(4 * pi * dist))**2
+    return tx_directivity * rx_directivity * (wavelength / (4 * pi * dist)) ** 2
 
 
 class PhysicsEngine:
@@ -65,9 +72,9 @@ class PhysicsEngine:
         p_tx = tx.power
         g_tx = tx.gain
         g_rx = rx.gain
-        wavelength = c/tx.frequency
+        wavelength = c / tx.frequency
         distance = dist.euclidean(tx.position, rx.position)
-        return p_tx * g_tx * g_rx * ((wavelength/(4*pi*distance))**2)
+        return p_tx * g_tx * g_rx * ((wavelength / (4 * pi * distance)) ** 2)
 
     def v_dc(self, tx, rx) -> float:
         """
@@ -83,8 +90,8 @@ class PhysicsEngine:
         The voltage output at the receiver
         """
         power = self.power_tag_rx(tx, tx)
-        v_pk = sqrt((rx.resistance * power)/500)
-        return v_pk/(sqrt(2))
+        v_pk = sqrt((rx.resistance * power) / 500)
+        return v_pk / (sqrt(2))
 
     def transmitted_voltage(self, tx, rx) -> float:
         """
@@ -93,12 +100,12 @@ class PhysicsEngine:
         """
         ex = self.exciter
         e_freq = ex.frequency
-        e_wavlen = c/e_freq
+        e_wavlen = c / e_freq
         e_pos = ex.position
 
         tx_pos = tx.position
         tx_freq = tx.frequency
-        tx_wavelen = c/tx_freq
+        tx_wavelen = c / tx_freq
         tx_refcoef = tx.active_coefficient
 
         rx_pos = rx.position
@@ -107,20 +114,26 @@ class PhysicsEngine:
         d_ex_tx = dist.euclidean(e_pos, tx_pos)
         d_ex_rx = dist.euclidean(e_pos, rx_pos)
         d_tx_rx = dist.euclidean(tx_pos, rx_pos)
-        i2pi = 1j*2*pi
+        i2pi = 1j * 2 * pi
 
         # Calculate the signal from exciter to tx and rx respectively
         # Passing in 1.0 for both directivities since we're assuming all
         # antennas in the simulation are isotropic at the moment
-        sig_ex_tx = attenuation(d_ex_tx, e_wavlen, 1.0, 1.0)\
-            * (e**(i2pi*d_ex_tx/e_wavlen))
-        sig_ex_rx = attenuation(d_ex_rx, e_wavlen, 1.0, 1.0)\
-            * (e**(i2pi*d_ex_rx/e_wavlen))
+        sig_ex_tx = attenuation(d_ex_tx, e_wavlen, 1.0, 1.0) * (
+            e ** (i2pi * d_ex_tx / e_wavlen)
+        )
+        sig_ex_rx = attenuation(d_ex_rx, e_wavlen, 1.0, 1.0) * (
+            e ** (i2pi * d_ex_rx / e_wavlen)
+        )
 
         # Calculate the signal from tx to rx
-        sig_tx_rx = sig_ex_tx * tx_refcoef * attenuation(
-                d_tx_rx, tx_wavelen, 1.0, 1.0)*(e**(i2pi*d_tx_rx/tx_wavelen))
+        sig_tx_rx = (
+            sig_ex_tx
+            * tx_refcoef
+            * attenuation(d_tx_rx, tx_wavelen, 1.0, 1.0)
+            * (e ** (i2pi * d_tx_rx / tx_wavelen))
+        )
 
         rx_pwr_recieved = sig_ex_rx + sig_tx_rx
-        v_pk = sqrt((rx_resist*rx_pwr_recieved)/500)
-        return v_pk/sqrt(2)
+        v_pk = sqrt(abs(rx_resist * rx_pwr_recieved) / 500)
+        return v_pk / sqrt(2)
