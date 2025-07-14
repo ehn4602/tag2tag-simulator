@@ -9,8 +9,8 @@ import sys
 from logging.handlers import QueueHandler, QueueListener
 from pathlib import Path
 
-from tags.tag import Tag, TagMachine
-from state_machine import *
+from tags.tag import *
+from tags.state_machine import *
 
 CONFIG_PATH = "./config/config.json"
 STATE_PATH = "./config/state_machines.json"
@@ -25,7 +25,9 @@ DEFAULT_STATS = {
 }
 
 
-def load_json(file_input, serializer, machines=None):
+def load_json(
+    file_input, serializer, machines=None, timer=None, logger=None, environment=None
+):
     """Loads config file, gaining information it needs to run
 
     Returns:
@@ -50,22 +52,19 @@ def load_json(file_input, serializer, machines=None):
             raw_events = raw_data.get("events", [])
 
             default = raw_data.get("Default")
+            exciter = Exciter.from_dict(environment, raw_data.get("Exciter"))
             tags = {
-                id: TagMachine.from_dict(id, val, machines)
+                id: Tag.from_dict(environment, logger, timer, id, val, serializer)
                 for id, val in raw_objects.items()
             }
             events = [event for event in raw_events]
-            return None, tags, events, default
+            return exciter, tags, events, default
         elif format == "state_machine":
             raw_states = raw_data.get("states", [])
-            raw_machines = raw_data.get("state_machines", [])
             for state in raw_states:
-                State.from_dict(state.get("id"), state, serializer)
-            machines = {
-                mach["id"]: StateMachine.from_dict(serializer, mach)
-                for mach in raw_machines
-            }
-            return machines, None, None, None
+                State.from_dict(state, serializer)
+
+            return None
         else:
             machine = load_machine(raw_data, serializer)
             if machine is None:
@@ -82,7 +81,7 @@ def load_json(file_input, serializer, machines=None):
         sys.exit(1)
 
 
-def save_config(machines, objects, events, default, serializer):
+def save_config(exciter, objects, events, default, serializer):
     """offloads changes back to JSON file
 
     Args:
@@ -101,6 +100,7 @@ def save_config(machines, objects, events, default, serializer):
                     "proccessing_machine_id": default["proccessing_machine_id"],
                     "output_machine_id": default["output_machine_id"],
                 },
+                "Exciter": Exciter.to_dict(exciter) if exciter is not None else None,
                 "Objects": {id: obj.to_dict() for id, obj in objects.items()},
                 "events": events,
             },
@@ -111,10 +111,6 @@ def save_config(machines, objects, events, default, serializer):
         json.dump(
             {
                 "Format": "state_machine",
-                "state_machines": [
-                    mach.to_dict(serializer, "placeholder")
-                    for mach in machines.values()
-                ],
                 "states": serializer.to_dict(),
             },
             f,
@@ -139,7 +135,7 @@ def parse_obj(vals, tags):
     return id, coords[0], coords[1], coords[2]
 
 
-def parse_default(vals, default, machines):
+def parse_default(vals, default, serializer: StateSerializer):
     if vals[0] in ["exciter_power", "resistive_load", "gain"]:
         try:
             val = float(vals[1])
@@ -148,11 +144,11 @@ def parse_default(vals, default, machines):
             print("error: invalid values for default")
             sys.exit(1)
         return default
-    elif vals[0] in ["input", "proccessing", "output"] and machines is not None:
+    elif vals[0] in ["input", "proccessing", "output"]:
         val = ""
         val += vals[0]
         val += "_machine_id"
-        if vals[1] in machines:
+        if vals[1] in serializer.get_state_map().keys():
             default[val] = vals[1]
             return default
         else:
@@ -216,16 +212,16 @@ def load_machine(data, serializer):
     ):
         raw_states = data.get("states", [])
         for state in raw_states:
-            State.from_dict(state.get("id"), state, serializer)
-        init_state = serializer._map_id_to_state(data.get("init_state"))
-        machine = StateMachine(init_state, data.get("id"))
+            State.from_dict(state, serializer)
+        init_state = serializer.get_state(data.get("init_state"))
+        machine = StateMachine(init_state)
         print(data.get("Format"), "successfully loaded")
         return machine
     else:
         return None
 
 
-def load(filepath, serializer):
+def load_txt(filepath, environment, serializer):
     """Loads arguments via a text file. Format is the same as arguments
     Args:
         filepath (string): text file to load in
@@ -237,7 +233,7 @@ def load(filepath, serializer):
     default = DEFAULT_STATS
     events = []
     objects = {}
-    machines = {}
+    exciter = None
     if os.path.exists(filepath):
         with open(filepath, "r") as f:
             lines = f.readlines()
@@ -249,17 +245,29 @@ def load(filepath, serializer):
                     continue
                 info = line.lower().split(" ")
                 if info[0] == "tag":
-                    tag = TagMachine(info[1], info[2:5])
-                    tag.input_machine = default.get("input_machine_id")
-                    tag.processing_machine = default.get("proccessing_machine_id")
-                    tag.output_machine = default.get("output_machine_id")
+
+                    timer = None  # is this tag specific or global?
+                    logger = None  # Set up logger later
+                    init_states = []
+                    init_states.append(
+                        serializer.get_state(default.get("input_machine_id"))
+                    )
+                    init_states.append(
+                        serializer.get_state(default.get("proccessing_machine_id"))
+                    )
+                    init_states.append(
+                        serializer.get_state(default.get("output_machine_id"))
+                    )
+                    tagmachine = TagMachine(init_states, timer, logger)
+                    tag = Tag(environment, info[1], tagmachine, None, info[2:5])
+                    # tag.input_machine = default.get("input_machine_id")
+                    # tag.processing_machine = default.get("proccessing_machine_id")
+                    # tag.output_machine = default.get("output_machine_id")
                     objects[info[1]] = tag
                 elif info[0] == "exciter":
-                    tag = TagMachine(info[1], info[2:5])
-                    objects[info[1]] = tag
+                    exciter = Exciter(environment, info[1], info[2:5])
                 elif info[0] == "default":
-                    default = parse_default(info[1:3], default, machines)
-                    # default[info[1]] = float(info[2])
+                    default = parse_default(info[1:3], default, serializer)
                 elif info[0] == "event":
                     event = info[1:]
                     times = [e[0] for e in events]
@@ -277,12 +285,11 @@ def load(filepath, serializer):
                             "proccessing_machine",
                             "output_machine",
                         ]:
-                            machine = load_machine(raw_data, serializer)
-                            machines[machine.id] = machine
+                            load_machine(raw_data, serializer)
                         else:
                             print("Skipping! invalid format:", info[1])
 
-            return machines, objects, events, default
+            return exciter, objects, events, default
 
 
 def init_logger(
@@ -364,12 +371,23 @@ def init_logger(
 def main():
 
     serializer = StateSerializer()
-    machines = {}
-    machines, _, _, _ = load_json(STATE_PATH, serializer)
-    _, objects, events, default = load_json(CONFIG_PATH, serializer, machines=machines)
+    environment = Environment(0)
+    timer = "Temp"
 
-    # if machine is not None:
-    #     machines[machine.id] = machine
+    logger, q_listener = init_logger(logging.INFO)
+    timer = "Temp"
+    load_json(STATE_PATH, serializer)
+
+    main_exciter, objects, events, default = load_json(
+        CONFIG_PATH, serializer, timer=timer, logger=logger
+    )
+
+    machine_id_keys = [
+        "input_machine_id",
+        "proccessing_machine_id",
+        "output_machine_id",
+    ]
+    machine_defined = not any(default[k] == "UNKOWN" for k in machine_id_keys)
     args = parse_args()
 
     # TODO Change this to take in arguments from the command line
@@ -379,15 +397,17 @@ def main():
         file_type = args.load.split(".")[-1]
         if file_type == "txt":
             if args.add:  # appends loaded arguments instead of overwrite
-                add_machines, add_objects, add_events, add_default = load(
-                    args.load, serializer
+                add_machines, add_objects, add_events, add_default = load_txt(
+                    args.load, environment, serializer
                 )
                 objects.update(add_objects)
                 default.update(add_default)
                 machines.update(add_machines)
                 events = list(heapq.merge(events, add_events, key=lambda x: x[0]))
             else:  # overwrites previouse saved data
-                machines, objects, events, default = load(args.load, serializer)
+                machines, objects, events, default = load_txt(
+                    args.load, environment, serializer
+                )
         elif file_type == "json":
             machine, temp_objects, temp_events, temp_default = load_json(
                 args.load, serializer, machines=machines
@@ -401,44 +421,41 @@ def main():
                 events = temp_events
                 default = temp_default
             if machine is not None:
-                machines[machine.id] = machine
+                # machines[machine.id] = machine
+                pass
         else:
             print("error: file type not supported")
-    if (
-        args.tag is not None or args.exciter is not None
-    ):  # Creates or move a tag/exciter
-        obj_args = None
-        model = None
-        if args.tag is not None:
-            model = "tag"
-            obj_args = args.tag
+    if args.exciter:
+        id, x, y, z = parse_obj(args.exciter, objects)
+        main_exciter = Exciter(None, id, (x, y, z))
+        print("Exciter moved to ", x, y, z)
+    if args.tag:
+        if not machine_defined:
+            print(
+                "error: tags missing machine identification. \nuse following command to define them:"
+                "\n--default [input,proccessing,output] init_state_id"
+            )
+            sys.exit(1)
         else:
-            model = "exciter"
-            obj_args = args.exciter
-
-        id, x, y, z = parse_obj(obj_args, objects)
-
-        # tag = Tag(uid, model, x, y, z)
-        coordinates = [x, y, z]
-        tag = TagMachine(id, coordinates)
-        if args.tag:
-            tag.input_machine = default.get("input_machine_id")
-            tag.processing_machine = default.get("proccessing_machine_id")
-            tag.output_machine = default.get("output_machine_id")
-        # Removed for now
-        # tag.resistance = default["resistive_load"]
-        # if args.exciter:
-        #     tag.gain = default["gain"]
-        #     tag.power = default["exciter_power"]
-        #     tag.model = "exciter"
-        if id in objects:
-            print(model + ":", id, "Moved to coordinates", x, y, z)
-        else:
-            print(model + ":", id, "Added at coordinate", x, y, z)
-        objects[id] = tag
+            id, x, y, z = parse_obj(args.tag, objects)
+            timer = None  # is this tag specific or global?
+            logger = None  # Set up logger later
+            init_states = []
+            init_states.append(serializer.get_state(default.get("input_machine_id")))
+            init_states.append(
+                serializer.get_state(default.get("proccessing_machine_id"))
+            )
+            init_states.append(serializer.get_state(default.get("output_machine_id")))
+            tagmachine = TagMachine(init_states, timer, logger)
+            new_obj = Tag(None, id, tagmachine, "Listen", (x, y, z))
+            objects[id] = new_obj
+            if id in objects:
+                print("Tag:", id, "Moved to coordinates", x, y, z)
+            else:
+                print("Tag:", id, "Added at coordinate", x, y, z)
 
     if args.default is not None:  # updates default value
-        default = parse_default(args.default, default, machines)
+        default = parse_default(args.default, default, serializer=serializer)
         print("updated")
 
     if args.remove:  # removes an object (Tag or exciter)
@@ -451,6 +468,7 @@ def main():
         lower_args = args.print.lower()
         match lower_args:
             case "objects":
+                print("Exciter: ", main_exciter.to_dict())
                 for key, value in objects.items():
                     print(f"{key}: {value.to_dict()}")
             case "events":
@@ -464,8 +482,8 @@ def main():
                     else:
                         print(f"{key}: {value}")
             case "states":
-                for key, value in serializer.mappings.items():
-                    print(f"{value}: {key.to_dict(serializer)}")
+                for key, value in serializer.get_state_map().items():
+                    print(f"{key}: {value.to_dict()}")
             case "machines":
                 for key, value in machines.items():
                     print(f"{key}: {value.to_dict(serializer,"placeholder")}")
@@ -482,7 +500,7 @@ def main():
             position = bisect.bisect_left(times, event[0])
             events.insert(position, event)
             events.append(args.event)
-    save_config(machines, objects, events, default, serializer)
+    save_config(main_exciter, objects, events, default, serializer)
     q_listener.stop()
 
 

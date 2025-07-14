@@ -1,6 +1,5 @@
 from typing import List, Optional, Dict
 from abc import ABC, abstractmethod
-from tag import Tag
 
 import physics
 
@@ -114,6 +113,31 @@ class State:
     def get_name(self):
         return self.name
 
+    def to_dict(self):
+        transitions_serialized = {}
+        for expect_input, (method, state) in self.transitions.items():
+            if isinstance(method, tuple):
+                method_serialized = list(method)
+            else:
+                method_serialized = [method]
+
+            transitions_serialized[expect_input] = [
+                method_serialized,
+                state.name,
+            ]
+        return {"id": self.name, "transitions": transitions_serialized}
+
+    @classmethod
+    def from_dict(cls, data, serializer, id=None):
+        if isinstance(data, str):
+            return serializer.get_state(data)
+        id = data.get("id")
+        state = serializer.get_state(id)
+        for expect_input, (method, output_id) in data["transitions"].items():
+            output_state = serializer.get_state(output_id)
+            state.add_transition(expect_input, tuple(method), output_state)
+        return state
+
 
 class StateSerializer:
     states: Dict[str, State]
@@ -128,6 +152,9 @@ class StateSerializer:
 
     def get_state_map(self):
         return self.states
+
+    def to_dict(self):
+        return [{"id": state.name, **state.to_dict()} for state in self.states.values()]
 
 
 class StateMachine:
@@ -156,11 +183,11 @@ class ExecuteMachine(StateMachine):
     registers: List[int | float]
 
     def __init__(self, init_state):
-        super(self).__init__(init_state)
+        super().__init__(init_state)
         self.transition_queue = None
         self.registers = [0 for _ in range(8)]
-    
-    def set_tag(self, tag: Tag):
+
+    def set_tag(self, tag):
         """
         Must be called after __init__ and before anything else
         """
@@ -227,7 +254,7 @@ class InputMachine(ExecuteMachine):
     def __init__(
         self, init_state, timer: TimerScheduler, processing_machine: "ProcessingMachine"
     ):
-        super(self).__init__(init_state)
+        super().__init__(init_state)
         self.processing_machine = processing_machine
         self.timer = timer
 
@@ -251,10 +278,8 @@ class InputMachine(ExecuteMachine):
 
 
 class ProcessingMachine(ExecuteMachine):
-    def __init__(
-        self, init_state, output: "OutputMachine", logger: "LoggerBase"
-    ):
-        super(self).__init__(init_state)
+    def __init__(self, init_state, output: "OutputMachine", logger: "LoggerBase"):
+        super().__init__(init_state)
         self.output = output
         self.logger = logger
 
@@ -275,7 +300,7 @@ class ProcessingMachine(ExecuteMachine):
 
 class OutputMachine(ExecuteMachine):
     def __init__(self, init_state, timer: TimerScheduler):
-        super(self).__init__(init_state)
+        super().__init__(init_state)
         self.timer = timer
 
     def _cmd_set_antenna(self, n: int):
@@ -299,7 +324,7 @@ class LoggerBase(ABC):
 
 
 class TagMachine:
-    def __init__(self, init_states, timer: TimerScheduler, logger: LoggerBase):
+    def __init__(self, init_states, timer: TimerScheduler, logger):
         self.output_machine = OutputMachine(init_states[2], timer)
         self.processing_machine = ProcessingMachine(
             init_states[1], self.output_machine, logger
@@ -309,7 +334,7 @@ class TagMachine:
         )
         self.timer_bridge = TimerBridge(timer)
 
-    def set_tag(self, tag: Tag):
+    def set_tag(self, tag):
         self.input_machine.set_tag(tag)
         self.processing_machine.set_tag(tag)
         self.output_machine.set_tag(tag)
@@ -319,14 +344,23 @@ class TagMachine:
 
     def on_timer(self):
         self.timer_bridge.on_timer()
-    
+
     def to_dict(self):
         return {
-            "input_machine": self.input_machine.init_state.to_dict(),
-            "processing_machine": self.processing_machine.init_state.to_dict(),
-            "output_machine": self.output_machine.init_state.to_dict()
-            }
-    
+            "input_machine": self.input_machine.init_state.name,
+            "processing_machine": self.processing_machine.init_state.name,
+            "output_machine": self.output_machine.init_state.name,
+        }
+
     @classmethod
-    def from_dict(cls, timer: TimerScheduler, logger: LoggerBase, data):
-        return cls((State.from_dict(data["input_machine"]), State.from_dict(data["processing_machine"]), State.from_dict(data["output_machine"])), timer, logger)
+    def from_dict(cls, timer: TimerScheduler, logger, data, serializer):
+
+        return cls(
+            (
+                State.from_dict(data["input_machine"], serializer),
+                State.from_dict(data["processing_machine"], serializer),
+                State.from_dict(data["output_machine"], serializer),
+            ),
+            timer,
+            logger,
+        )
