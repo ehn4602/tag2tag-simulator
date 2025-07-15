@@ -33,6 +33,17 @@ class EventArgs:
     def get_arg(self, arg_name: str) -> Any | None:
         return self.args.get(arg_name)
 
+    def to_dict(self):
+        return {"event_type": self.event_type, "delay": self.delay, **self.args}
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls(
+            event_type=data["event_type"],
+            delay=data["delay"],
+            **{k: v for k, v in data.items() if k not in ("event_type", "delay")},
+        )
+
 
 class Event(ABC):
     """Represents an implemented Event that can be run."""

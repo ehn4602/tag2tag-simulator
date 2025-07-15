@@ -12,9 +12,11 @@ from typing import Optional
 
 from tags.tag import *
 from tags.state_machine import *
+from event.base_event import *
 
 CONFIG_PATH = "./config/config.json"
 STATE_PATH = "./config/states.json"
+EVENT_PATH = "./config/events.json"
 
 DEFAULT_STATS = {
     "exciter_power": 500.0,
@@ -54,7 +56,7 @@ def load_json(
         format = raw_data.get("Format")
         if format == "config":
             raw_objects = raw_data.get("Objects", {})
-            raw_events = raw_data.get("events", [])
+            # raw_events = raw_data.get("events", [])
 
             default = raw_data.get("Default")
             if raw_data.get("Exciter") != "UNDEFINED":
@@ -65,12 +67,15 @@ def load_json(
                 id: Tag.from_dict(environment, logger, timer, id, val, serializer)
                 for id, val in raw_objects.items()
             }
-            events = [event for event in raw_events]
-            return exciter, tags, events, default
+            # events = [event for event in raw_events]
+            return exciter, tags, None, default
         elif format == "state_machine":
             state_output = load_states(raw_data, serializer, default)
             if state_output is not None:
                 return None, None, None, state_output
+        elif format == "events":
+            events = [EventArgs.from_dict(e) for e in raw_data.get("Events")]
+            return None, None, events, None
         else:
             print("error: invalid JSON format")
             sys.exit(1)
@@ -113,17 +118,22 @@ def save_config(
                     Exciter.to_dict(exciter) if exciter is not None else "UNDEFINED"
                 ),
                 "Objects": {id: obj.to_dict() for id, obj in objects.items()},
-                "events": events,
             },
             f,
             indent=4,
         )
-    with open("./config/states.json", "w") as f:
+    with open(STATE_PATH, "w") as f:
         json.dump(
             {
                 "Format": "state_machine",
                 "states": serializer.to_dict(),
             },
+            f,
+            indent=4,
+        )
+    with open(EVENT_PATH, "w") as f:
+        json.dump(
+            {"Format": "events", "Events": [e.to_dict() for e in events]},
             f,
             indent=4,
         )
@@ -207,10 +217,13 @@ def parse_args():
 
     parser.add_argument(
         "--event",
-        nargs=4,
-        metavar=("HH:MM:SS", "tx", "rx", "protocol"),
+        nargs=3,
+        metavar=("time", "tag", "event_type"),
         help="An event that will be simulated",
     )
+    parser.add_argument("--event_transmission", nargs=1, help="")
+    parser.add_argument("--event_mode", nargs=1, help="")
+
     parser.add_argument(
         "--default", nargs=2, metavar=("name", "value"), help="changes a default value"
     )
@@ -286,7 +299,8 @@ def load_txt(
                 ].strip()  # remove comments from loading files. Comments start with #
                 if not line:  # line is just a comment
                     continue
-                info = line.split(" ")
+
+                info = line.replace("-", "").split(" ")
                 info[0] = info[0].lower()
                 if info[0] == "tag":
 
@@ -308,10 +322,30 @@ def load_txt(
                 elif info[0] == "default":
                     default = parse_default(info[1:3], default, serializer)
                 elif info[0] == "event":
-                    event = info[1:]
-                    times = [e[0] for e in events]
-                    position = bisect.bisect_left(times, info[1])
-                    events.insert(position, event)
+                    # event = info[1:]
+                    # times = [e[0] for e in events]
+                    # position = bisect.bisect_left(times, info[1])
+                    # events.insert(position, event)
+
+                    event_args = {}
+                    event_args["delay"] = int(info[1])
+                    event_args["tag"] = info[2]
+                    event_args["event_type"] = info[3]
+                    i = 4
+                    while i + 1 < len(info):
+                        if info[i].lower() == "event_transmission":
+                            event_args["transmission"] = info[i + 1]
+                            i += 2
+                        elif info[i].lower() == "event_mode":
+                            event_args["mode"] = info[i + 1]
+                            i += 2
+                        else:
+                            i += 1
+                    new_event = EventArgs(**event_args)
+                    times = [e.delay for e in events]
+                    position = bisect.bisect_left(times, new_event.delay)
+                    events.insert(position, new_event)
+
                 elif info[0] == "load":
                     if os.path.exists(info[1]):
                         with open(info[1], "r") as f:
@@ -421,6 +455,8 @@ def main():
         CONFIG_PATH, serializer, timer=timer, logger=logger
     )
 
+    _, _, events, _ = load_json(EVENT_PATH, serializer)
+
     machine_id_keys = [
         "input_machine_id",
         "proccessing_machine_id",
@@ -524,13 +560,19 @@ def main():
         event = args.event
         if event[1] not in objects:
             print("error, unkown tag:", event[1])
-        elif event[2] not in objects:
-            print("error, unkown tag:", event[2])
-        else:
-            times = [a[0] for a in events]
-            position = bisect.bisect_left(times, event[0])
-            events.insert(position, event)
-            events.append(args.event)
+        event_args = {}
+        event_args["delay"] = int(event[0])
+        event_args["tag"] = event[1]
+        event_args["event_type"] = event[2]
+        event_args["tag"] = event[1]
+        if args.event_transmission:
+            event_args["transmission"] = args.event_transmission[0]
+        if args.event_mode:
+            event_args["mode"] = args.event_mode[0]
+        new_event = EventArgs(**event_args)
+        times = [e.delay for e in events]
+        position = bisect.bisect_left(times, new_event.delay)
+        events.insert(position, new_event)
     save_config(main_exciter, objects, events, default, serializer)
     q_listener.stop()
 
