@@ -1,7 +1,33 @@
+from __future__ import annotations
+
 from math import sqrt
 import scipy.spatial.distance as dist
 from scipy.constants import c, e, pi
+from typing import TYPE_CHECKING
 
+if TYPE_CHECKING:
+  from tags.tag import Tag
+
+
+# TODO: hook this up to the physics engine
+class PhysicsEngineWrapper:
+    def __init__(self, tags: set[Tag]):
+        self.tags = tags
+    
+    def add_tag(self, tag: Tag):
+        self.tags.add(tag)
+    
+    def remove_tag(self, tag: Tag):
+        if tag in self.tags:
+            self.tags.remove(tag)
+    
+    def get_received_voltage(self, asking_tag: Tag):
+        # very simple mockup for now
+        acc = 0
+        for tag in self.tags:
+            if tag is not asking_tag and not tag.get_mode().is_listening() and tag.get_mode().get_index() == 1:
+                acc = acc + 1
+        return acc
 
 def attenuation(dist: float, wavelength: float,
                 tx_directivity=1.0, rx_directivity=1.0) -> float:

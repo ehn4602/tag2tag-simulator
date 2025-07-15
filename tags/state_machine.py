@@ -1,37 +1,13 @@
-from typing import List, Optional, Dict
+from __future__ import annotations
+
+from typing import List, Optional, Dict, TYPE_CHECKING
 from abc import ABC, abstractmethod
+from logging import Logger
+
+if TYPE_CHECKING:
+    from tags.tag import Tag
 
 import physics
-
-
-# closer to pseudo code than an actual implementation
-# will have to hash this out
-class WorldInterface:
-    def __init__(self, machine):
-        self.machine = machine
-
-    # called by a machine to set its antenna
-    def set_antenna(self, setting):
-        pass
-
-    # called by something in the simulator to update a machine
-    # when another machine adjusts its antenna
-    def notify_update(self):
-        pass
-
-    # like notify_update, but called when a timer set by the machine
-    # goes off
-    def notify_timer(self):
-        pass
-
-    # set the time until a timer update comes in
-    # time == None disables the timer
-    def set_timer(self, time):
-        pass
-
-    # read the voltage at the envelope detector
-    def read_voltage(self):
-        pass
 
 
 class PhysicsInterface:
@@ -44,7 +20,7 @@ class PhysicsInterface:
 
 class TimerScheduler(ABC):
     @abstractmethod
-    def set_timer(self, delay: int):
+    def set_timer(self, timer_acceptor: "TimerAcceptor", delay: int):
         """
         Schedules a timer event
         """
@@ -58,39 +34,6 @@ class TimerAcceptor:
         Called when a timer event goes off
         """
         pass
-
-
-class TimerBridgeChild(TimerScheduler):
-    """
-    Acts as a TimerAcceptor proxy for the last object to schedule a timer
-    """
-
-    parent: "TimerBridge"
-
-
-class TimerBridge:
-    """
-    Acts as a TimerBridgeChild factory
-    """
-
-    timer_obj_last: Optional[TimerAcceptor]
-
-    def __init__(self, timer_scheduler: TimerScheduler):
-        self.timer_scheduler = timer_scheduler
-        self.timer_obj_last = None
-
-    def set_timer(self, obj: TimerAcceptor, timer_val):
-        if timer_val is None:
-            if self.timer_obj_last == obj:
-                self.timer_obj_last = None
-            self.timer_scheduler.set_timer(None)
-        else:
-            self.timer_obj_last = obj
-            self.timer_scheduler.set_timer(timer_val)
-
-    def on_timer(self):
-        if self.timer_obj_last is not None:
-            self.timer_obj_last.on_timer()
 
 
 class State:
@@ -179,6 +122,21 @@ class StateMachine:
             return [out[0]]
 
 
+class MachineLogger:
+    def __init__(self, logger: Logger):
+        self.store = ""
+        self.logger = logger
+
+    def log(self, s: str):
+        newline_index = s.find("\n")
+        while newline_index != -1:
+            self.logger.info(self.store + s[:newline_index])
+            self.store = ""
+            s = s[newline_index + 1 :]
+            newline_index = s.find("\n")
+        self.store += s
+
+
 class ExecuteMachine(StateMachine):
     registers: List[int | float]
 
@@ -250,7 +208,7 @@ class ExecuteMachine(StateMachine):
         self.transition_queue = None
 
 
-class InputMachine(ExecuteMachine):
+class InputMachine(ExecuteMachine, TimerAcceptor):
     def __init__(
         self, init_state, timer: TimerScheduler, processing_machine: "ProcessingMachine"
     ):
@@ -259,7 +217,7 @@ class InputMachine(ExecuteMachine):
         self.timer = timer
 
     def _cmd_set_timer(self, timer_reg):
-        self.timer.set_timer(self.registers[timer_reg])
+        self.timer.set_timer(self, self.registers[timer_reg])
 
     def _cmd_save_voltage(self, out_reg):
         self.registers[out_reg] = self.tag.read_voltage()
@@ -278,8 +236,8 @@ class InputMachine(ExecuteMachine):
 
 
 class ProcessingMachine(ExecuteMachine):
-    def __init__(self, init_state, output: "OutputMachine", logger: "LoggerBase"):
-        super().__init__(init_state)
+    def __init__(self, init_state, output: "OutputMachine", logger: MachineLogger):
+        super(self).__init__(init_state)
         self.output = output
         self.logger = logger
 
@@ -295,10 +253,10 @@ class ProcessingMachine(ExecuteMachine):
         self.output.on_recv_int(self.registers[reg])
 
     def _cmd_send_int_log(self, reg):
-        self.logger.log(self.registers[reg])
+        self.logger.log(str(self.registers[reg]))
 
 
-class OutputMachine(ExecuteMachine):
+class OutputMachine(ExecuteMachine, TimerAcceptor):
     def __init__(self, init_state, timer: TimerScheduler):
         super().__init__(init_state)
         self.timer = timer
@@ -307,24 +265,15 @@ class OutputMachine(ExecuteMachine):
         self.tag.set_mode_reflect(n)
 
     def _cmd_set_timer(self, time):
-        self.timer.set_timer(time)
+        self.timer.set_timer(self, time)
 
     def on_recv_int(self, n: int):
         self.registers[7] = n
         self._accept_symbol("on_recv_int")
 
 
-class LoggerBase(ABC):
-    def __init__(self):
-        pass
-
-    @abstractmethod
-    def log(self, out: str):
-        pass
-
-
 class TagMachine:
-    def __init__(self, init_states, timer: TimerScheduler, logger):
+    def __init__(self, init_states, timer: TimerScheduler, logger: MachineLogger):
         self.output_machine = OutputMachine(init_states[2], timer)
         self.processing_machine = ProcessingMachine(
             init_states[1], self.output_machine, logger
@@ -332,7 +281,6 @@ class TagMachine:
         self.input_machine = InputMachine(
             init_states[0], timer, self.processing_machine
         )
-        self.timer_bridge = TimerBridge(timer)
 
     def set_tag(self, tag):
         self.input_machine.set_tag(tag)
@@ -341,9 +289,6 @@ class TagMachine:
 
     def prepare(self):
         self.input_machine.prepare()
-
-    def on_timer(self):
-        self.timer_bridge.on_timer()
 
     def to_dict(self):
         return {

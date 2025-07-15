@@ -7,7 +7,7 @@ from simpy import Environment
 from abc import ABC, abstractmethod
 
 from util.types import Position
-from tags.state_machine import TagMachine, TimerScheduler, LoggerBase
+from tags.state_machine import TagMachine, TimerScheduler
 
 
 class TagMode(ABC):
@@ -101,6 +101,9 @@ class Tag(Positionable):
 
     def set_mode_reflect(self, index: int):
         self.set_mode(TagModeReflect(index))
+
+    def get_mode(self):
+        return self.mode
 
     def read_voltage(self) -> float:
         pass
