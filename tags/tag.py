@@ -7,7 +7,7 @@ from simpy import Environment
 from abc import ABC, abstractmethod
 
 from util.types import Position
-from tags.state_machine import TagMachine, TimerScheduler
+from tags.state_machine import TagMachine, TimerScheduler, MachineLogger
 
 
 class TagMode(ABC):
@@ -112,6 +112,9 @@ class Tag(Positionable):
         """For placing tags into dicts correctly on JSON"""
         return {
             "tag_machine": self.tag_machine.to_dict(),
+            "x": self.pos[0],
+            "y": self.pos[1],
+            "z": self.pos[2],
             "x": self.pos[0],
             "y": self.pos[1],
             "z": self.pos[2],

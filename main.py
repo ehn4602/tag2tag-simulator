@@ -49,7 +49,9 @@ def load_json(
                 raw_data = json.load(f)
             except json.JSONDecodeError:
                 if file_input == CONFIG_PATH:
-                    return default_exciter, {}, [], DEFAULT_STATS
+                    return default_exciter, {}, None, DEFAULT_STATS
+                elif file_input == EVENT_PATH:
+                    return None, None, [], None
                 else:
                     print("error: file doesn't exist")
                     sys.exit(1)
@@ -62,7 +64,7 @@ def load_json(
             if raw_data.get("Exciter") != "UNDEFINED":
                 exciter = Exciter.from_dict(environment, raw_data.get("Exciter"))
             else:
-                exciter = None
+                exciter = default_exciter
             tags = {
                 id: Tag.from_dict(environment, logger, timer, id, val, serializer)
                 for id, val in raw_objects.items()

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from typing import List, Optional, Dict, TYPE_CHECKING
+from typing import List, Optional, Self, Dict, Any, TYPE_CHECKING
 from abc import ABC, abstractmethod
 from logging import Logger
+
+from simpy import Environment, Interrupt
 
 if TYPE_CHECKING:
     from tags.tag import Tag
@@ -18,27 +20,93 @@ class PhysicsInterface:
         pass
 
 
-class TimerScheduler(ABC):
-    @abstractmethod
-    def set_timer(self, timer_acceptor: "TimerAcceptor", delay: int):
+class Timer:
+    def __init__(self, timer_acceptor: "TimerAcceptor"):
+        self.timer_acceptor = timer_acceptor
+        self.next_run: Optional[int] = None
+
+    def set_next_run(self, next_run: int):
+        self.next_run = next_run
+
+    def run(self):
+        self.timer_acceptor.on_timer()
+        self.next_run = None
+
+    def __lt__(self, other: Self) -> bool:
+        if self.next_run is None:
+            return False
+        return self.next_run < other.next_run
+
+
+class TimerScheduler:
+
+    def __init__(self, env: Environment):
+        self.env: Environment = env
+        self.timers: List[Timer] = []
+        self.next_run: Optional[int] = None
+        self.process = self.env.process(self.run())
+
+    def add_timer(self, timer_acceptor: "TimerAcceptor"):
+        timer_acceptor_id = len(self.timers)
+        self.timers.add(Timer(timer_acceptor))
+        return timer_acceptor_id
+
+    def run(self):
+        while True:
+            self.timers.sort()
+            next_timer: Timer = self.timers[0]
+            self.next_run = next_timer.next_run
+            yield from self.handle_next_run(next_timer)
+
+    def handle_next_run(self, next_timer: Timer):
+        try:
+            if self.next_run is None:
+                # Big number (idk where python) int.MAX_VALUE is
+                yield self.env.timeout(999999999)
+                return
+            delay = self.next_run - self.env.now
+            yield self.env.timeout(delay)
+        except Interrupt:
+            return
+        next_timer.run()
+
+    def set_timer(self, timer_acceptor_id: int, delay: int):
         """
         Schedules a timer event
         """
-        pass
+        assert delay >= 0
+        timer = self.timers[timer_acceptor_id]
+        timer.next_run = self.env.now + delay
+        if self.next_run is None:
+            return
+        if timer.next_run < self.next_run:
+            self.process.interrupt()
 
 
-class TimerAcceptor:
-    @abstractmethod
-    def on_timer(self):
+# Maybe rename to TimerAccessor
+class TimerAcceptor(ABC):
+
+    def __init__(self, timer: TimerScheduler):
+        self._timer = timer
+        self._timer_acceptor_id = self._timer.add_timer(self)
+
+    def set_timer(self, delay: int):
         """
-        Called when a timer event goes off
+        Schedules a timer event
         """
-        pass
+        self._timer.set_timer(self._timer_acceptor_id, self, delay)
+
+    # @abstractmethod
+    # def on_timer(self):
+    #     """
+    #     Called when a timer event goes off
+    #     """
+    #     pass
 
 
 class State:
     def __init__(self, name: str):
-        self.transitions = {}
+        self.transitions: dict[str, tuple[Any, State]] = {}
         self.name = name
 
     def add_transition(self, expect_symbol: str, method, state: "State"):
@@ -101,7 +169,7 @@ class StateSerializer:
 
 
 class StateMachine:
-    def __init__(self, init_state):
+    def __init__(self, init_state: State):
         self.state = init_state
         self.init_state = init_state
 
@@ -140,12 +208,13 @@ class MachineLogger:
 class ExecuteMachine(StateMachine):
     registers: List[int | float]
 
-    def __init__(self, init_state):
+    def __init__(self, tag_machine: TagMachine, init_state: State):
         super().__init__(init_state)
+        self.tag_machine = tag_machine
         self.transition_queue = None
         self.registers = [0 for _ in range(8)]
 
-    def set_tag(self, tag):
+    def set_tag(self, tag: Tag):
         """
         Must be called after __init__ and before anything else
         """
@@ -209,24 +278,22 @@ class ExecuteMachine(StateMachine):
 
 
 class InputMachine(ExecuteMachine, TimerAcceptor):
-    def __init__(
-        self, init_state, timer: TimerScheduler, processing_machine: "ProcessingMachine"
-    ):
-        super().__init__(init_state)
-        self.processing_machine = processing_machine
-        self.timer = timer
+    def __init__(self, tag_machine: TagMachine, init_state: State):
+        super().__init__(tag_machine, init_state)
 
     def _cmd_set_timer(self, timer_reg):
-        self.timer.set_timer(self, self.registers[timer_reg])
+        self.tag_machine.timer.set_timer(self, self.registers[timer_reg])
 
     def _cmd_save_voltage(self, out_reg):
-        self.registers[out_reg] = self.tag.read_voltage()
+        self.registers[out_reg] = self.tag_machine.tag.read_voltage()
 
     def _cmd_send_bit(self, reg):
-        self.processing_machine.on_recv_bit(self.registers[reg])
+        self.tag_machine.processing_machine.on_recv_bit(self.registers[reg])
 
     def _cmd_forward_voltage(self):
-        self.processing_machine.on_recv_voltage(self.world_interface.read_voltage())
+        self.tag_machine.processing_machine.on_recv_voltage(
+            self.tag_machine.tag.read_voltage()
+        )
 
     def prepare(self):
         self._accept_symbol("init")
@@ -236,10 +303,9 @@ class InputMachine(ExecuteMachine, TimerAcceptor):
 
 
 class ProcessingMachine(ExecuteMachine):
-    def __init__(self, init_state, output: "OutputMachine", logger: MachineLogger):
-        super().__init__(init_state)
-        self.output = output
-        self.logger = logger
+    def __init__(self, tag_machine: TagMachine, init_state: State):
+        super().__init__(tag_machine, init_state)
+        self.tag_machine = tag_machine
 
     def on_recv_bit(self, val: bool):
         self.registers[7] = val and 1 or 0
@@ -250,22 +316,24 @@ class ProcessingMachine(ExecuteMachine):
         self._accept_symbol("on_recv_voltage")
 
     def _cmd_send_int_out(self, reg):
-        self.output.on_recv_int(self.registers[reg])
+        self.tag_machine.output_machine.on_recv_int(self.registers[reg])
 
     def _cmd_send_int_log(self, reg):
-        self.logger.log(str(self.registers[reg]))
+        self.tag_machine.logger.log(str(self.registers[reg]))
 
 
 class OutputMachine(ExecuteMachine, TimerAcceptor):
-    def __init__(self, init_state, timer: TimerScheduler):
-        super().__init__(init_state)
-        self.timer = timer
+    def __init__(self, tag_machine: TagMachine, init_state: State):
+        super().__init__(tag_machine, init_state)
 
     def _cmd_set_antenna(self, n: int):
-        self.tag.set_mode_reflect(n)
+        self.tag_machine.tag.set_mode_reflect(n)
+
+    def _cmd_set_listen(self):
+        self.tag_machine.tag.set_mode_listen()
 
     def _cmd_set_timer(self, time):
-        self.timer.set_timer(self, time)
+        self.tag_machine.timer.set_timer(self, time)
 
     def on_recv_int(self, n: int):
         self.registers[7] = n
@@ -273,19 +341,20 @@ class OutputMachine(ExecuteMachine, TimerAcceptor):
 
 
 class TagMachine:
-    def __init__(self, init_states, timer: TimerScheduler, logger: MachineLogger):
-        self.output_machine = OutputMachine(init_states[2], timer)
-        self.processing_machine = ProcessingMachine(
-            init_states[1], self.output_machine, logger
-        )
-        self.input_machine = InputMachine(
-            init_states[0], timer, self.processing_machine
-        )
+    def __init__(
+        self,
+        init_states: tuple[State, State, State],
+        timer: TimerScheduler,
+        logger: Logger,
+    ):
+        self.timer = timer
+        self.input_machine = InputMachine(self, init_states[0])
+        self.processing_machine = ProcessingMachine(self, init_states[1])
+        self.output_machine = OutputMachine(self, init_states[2])
+        self.logger = MachineLogger(logger)
 
-    def set_tag(self, tag):
-        self.input_machine.set_tag(tag)
-        self.processing_machine.set_tag(tag)
-        self.output_machine.set_tag(tag)
+    def set_tag(self, tag: Tag):
+        self.tag = tag
 
     def prepare(self):
         self.input_machine.prepare()
