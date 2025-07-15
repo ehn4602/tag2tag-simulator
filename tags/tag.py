@@ -10,26 +10,22 @@ from util.types import Position
 from tags.state_machine import TagMachine, TimerScheduler, MachineLogger
 
 
-class TagMode(ABC):
-    @abstractmethod
-    def is_listening(self) -> bool:
-        pass
+class TagMode:
+    _LISTENING_IDX = 0
 
+    LISTENING: "TagMode"
 
-class TagModeListen(TagMode):
-    def is_listening(self):
-        return True
-
-
-class TagModeReflect(TagMode):
     def __init__(self, index: int):
-        self.index = index
+        self._index = index
 
-    def is_listening(self):
-        return False
+    def is_listening(self) -> bool:
+        return self._index == TagMode._LISTENING_IDX
 
-    def get_index(self):
-        return self.index
+    def get_reflection_index(self) -> int:
+        return self._index
+
+
+TagMode.LISTENING = TagMode(TagMode._LISTENING_IDX)
 
 
 class Positionable:
@@ -77,6 +73,7 @@ class Tag(Positionable):
         tag_machine: TagMachine,
         mode: TagMode,
         pos: Position,
+        reflection_coefficients: List[float],
     ):
         super().__init__(env, name, pos)
         self.tag_machine = tag_machine
@@ -84,6 +81,7 @@ class Tag(Positionable):
         self.power = 0
         self.gain = 0
         self.resistance = 0
+        self.reflection_coefficients = reflection_coefficients
 
     def __str__(self):
         return f"Tag={{{self.name}}}"
@@ -97,13 +95,16 @@ class Tag(Positionable):
         self.mode = tag_mode
 
     def set_mode_listen(self):
-        self.set_mode(TagModeListen())
+        self.set_mode(TagMode.LISTENING)
 
     def set_mode_reflect(self, index: int):
-        self.set_mode(TagModeReflect(index))
+        self.set_mode(TagMode(index))
 
     def get_mode(self):
         return self.mode
+
+    def get_reflection_coefficient(self):
+        return self.reflection_coefficients[self.get_mode().get_reflection_index()]
 
     def read_voltage(self) -> float:
         pass
@@ -140,7 +141,7 @@ class Tag(Positionable):
             timer, logger, data["tag_machine"], serializer
         )
         tag = cls(
-            env, name, tag_machine, TagModeReflect(0), (data["x"], data["y"], data["z"])
+            env, name, tag_machine, TagMode.LISTENING, (data["x"], data["y"], data["z"])
         )
         tag_machine.set_tag(tag)
         return tag
