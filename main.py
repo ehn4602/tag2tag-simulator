@@ -6,7 +6,6 @@ import logging
 import os
 import queue
 import sys
-import heapq
 from logging.handlers import QueueHandler, QueueListener
 from pathlib import Path
 from typing import Optional

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from typing import List, Optional, Self, Dict, Any, TYPE_CHECKING
-from typing import List, Optional, Self, Dict, Any, TYPE_CHECKING
 from abc import ABC, abstractmethod
 from logging import Logger
+import heapq
 
 from simpy import Environment, Interrupt
 
@@ -99,12 +99,12 @@ class TimerAcceptor(ABC):
         if delay != 0:
             self._last_timer = self._scheduler.set_timer(self, delay)
 
-    # @abstractmethod
-    # def on_timer(self):
-    #     """
-    #     Called when a timer event goes off
-    #     """
-    #     pass
+    @abstractmethod
+    def on_timer(self):
+        """
+        Called when a timer event goes off
+        """
+        pass
 
 
 class State:
@@ -347,6 +347,9 @@ class OutputMachine(ExecuteMachine, TimerAcceptor):
     def on_recv_int(self, n: int):
         self.registers[7] = n
         self._accept_symbol("on_recv_int")
+
+    def on_timer(self):
+        self._accept_symbol("on_timer")
 
 
 class TagMachine:
