@@ -1,7 +1,7 @@
 from typing import List
 from event.base_event import Event, EventArgs
 from manager.tag_manager import TagManager
-from placeholder.tag import Tag, TagMode
+from tags.tag import Tag
 
 
 class TagEvent(Event):
@@ -13,19 +13,18 @@ class TagEvent(Event):
         tag: str = args.get_required_arg("tag")
         tag: Tag = TagManager.get_by_name(tag)
         if tag is None:
-            raise ValueError(
-                f"{str(args)}: references unknown tag. Found {args['tag']}"
-            )
+            raise ValueError(f"{args}: references unknown tag. Found {args['tag']}")
         return tag
 
 
 class TagSetModeEvent(TagEvent):
     def __init__(self, args: EventArgs):
         super().__init__(args)
-        self.mode: str = self._parse_mode(args)
-        self.transmission: List[int] = self._parse_transmission(args)
+        self.mode: TagMode = self._parse_mode(args)
+        self.transmission: List[int] | None = self._parse_transmission(args)
+        self.tag_rx: Tag | None = self._parse_reciever(args)
 
-    def _parse_mode(self, args: EventArgs) -> str:
+    def _parse_mode(self, args: EventArgs) -> TagMode:
         """Parse the TagMode value from the config event's str representation
 
         Args:
@@ -40,10 +39,10 @@ class TagSetModeEvent(TagEvent):
         mode_arg: str = args.get_required_arg("mode")
         parsed_mode: TagMode | None = TagMode.from_str(mode_arg)
         if parsed_mode is None:
-            raise ValueError(f"{str(args)}: has unknown mode. Found {mode_arg}")
+            raise ValueError(f"{args}: has unknown mode. Found {mode_arg}")
         return parsed_mode
 
-    def _parse_transmission(self, args: EventArgs) -> List[int]:
+    def _parse_transmission(self, args: EventArgs) -> List[int] | None:
         """Parse the transmission from the config event's str representation.
 
         Args:
@@ -55,26 +54,38 @@ class TagSetModeEvent(TagEvent):
         Returns:
             List[int]: The parsed transmission as a List of 0s and 1s
         """
-        transmission_arg = args.get_arg("transmission")
-        if transmission_arg is None:
+
+        conditions = [(self.mode == TagMode.TRANSMIT, "mode is transmit")]
+        arg = args.get_required_arg("transmission", conditions=conditions)
+        if arg is None:
             return None
 
         transmission: List[int] = []
-
         # TODO: could be some binary representation,
         # but list of int works good enough since we'll probably change what the transmission event is
-        for bit in transmission_arg:
+        for bit in arg:
             if bit == "0":
                 transmission.append(0)
             elif bit == "1":
                 transmission.append(1)
             else:
                 raise ValueError(
-                    f"{str(args)}: transmission is contains characters that are not 0 or 1. Found {transmission_arg}"
+                    f"{args}: transmission is contains characters that are not 0 or 1. Found {arg}"
                 )
         return transmission
 
+    def _parse_reciever(self, args: EventArgs) -> Tag | None:
+        # TODO: deduplicate by extracting utility methods
+        conditions = [(self.mode == TagMode.TRANSMIT, "mode is transmit")]
+        arg: str | None = args.get_required_arg("tag_rx", conditions=conditions)
+        if arg is None:
+            return None
+
+        tag: Tag = TagManager.get_by_name(arg)
+        if tag is None:
+            raise ValueError(f"{args}: references unknown tag. Found {tag_arg}")
+        return tag
+
     def run(self):
-        print(f"Applying {self} to {self.tag}")
         self.tag.set_mode(self.mode)
         self.tag.set_transmission(self.transmission)

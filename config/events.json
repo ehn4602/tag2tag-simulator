@@ -9,6 +9,7 @@
         "delay": 100,
         "event_type": "tag_set_mode",
         "tag": "venus",
+        "tag_rx": "mercury",
         "mode": "transmit",
         "transmission": "11010110"
     },
@@ -23,6 +24,7 @@
         "event_type": "tag_set_mode",
         "tag": "mercury",
         "mode": "transmit",
+        "tag_rx": "venus",
         "transmission": "11010110"
     }
 ]

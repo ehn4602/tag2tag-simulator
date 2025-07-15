@@ -8,18 +8,15 @@ type CreateEvent = Callable[[EventArgs], Event]
 
 class EventTypes:
     """A utility class for mapping event types and dispatching events"""
-
     event_types: Dict[str, CreateEvent] = {
         "tag_set_mode": TagSetModeEvent,
     }
 
-    @classmethod
     def create_event(cls, event_args: EventArgs) -> Event:
-        event_type: str = event_args.event_type
+        event_type: str = event_args.event_type.lower()
         creator: CreateEvent = EventTypes.event_types[event_type]
         return creator(event_args)
 
-    @classmethod
+    # Made into a dedicated method in the case we want logging around this.
     def dispatch_event(cls, event: Event):
-        print(f"Running event: {event}.")
         event.run()

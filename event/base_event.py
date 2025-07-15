@@ -1,34 +1,51 @@
 from abc import ABC
-from typing import Any
+from typing import Any, List, Tuple, overload
 from simpy.core import SimTime
 
 from util.identifiers import id_generator
 
+type ArgParseConditions = List[Tuple[bool, str]]
 
-# TODO: Should add a hash function so it orders the same way if multiple events happen simultaneously
+
 class EventArgs:
     """Represents an event loaded from the config which is the arguments to dispatch the event"""
 
-    # TODO: convert event_type to enum
-    event_type: str
-    delay: SimTime
-    args: dict
-
     def __init__(self, **kwargs):
-        self.event_type = kwargs.pop("event_type")
-        self.delay = kwargs.pop("delay")
-        self.args = kwargs
+        self.event_type: str = kwargs.pop("event_type").casefold()
+        self.time: SimTime = kwargs.pop("time")
+        self.args: dict = kwargs
 
     def __str__(self):
-        return f"{self.event_type} at {self.delay}"
+        return f"Event.{self.event_type} at t={self.time}"
 
-    def get_required_arg(self, arg_name: str) -> Any:
+    # Overloaded just for the type annotation that this will not ever return None
+    @overload
+    def get_required_arg(self, arg_name: str) -> Any: ...
+
+    @overload
+    def get_required_arg(
+        self, arg_name: str, conditions: ArgParseConditions
+    ) -> Any | None: ...
+
+    def get_required_arg(
+        self,
+        arg_name: str,
+        conditions: ArgParseConditions | None = None,
+    ) -> Any | None:
         value = self.get_arg(arg_name)
-        if value is None:
-            raise ValueError(
-                f"{self}: Field {arg_name} is required, but no value was found."
-            )
-        return value
+        if value is not None:
+            return value
+
+        if conditions is None:
+            error_msg = f"{self}: Field {arg_name} is required, but no value was found"
+            raise ValueError(error_msg)
+
+        for condition in conditions:
+            if not condition[0]:
+                continue
+            error_msg = f"{self}: Field {arg_name} is required when {condition[1]}, but no value was found"
+            raise ValueError(error_msg)
+        return None
 
     def get_arg(self, arg_name: str) -> Any | None:
         return self.args.get(arg_name)
@@ -43,10 +60,10 @@ class Event(ABC):
         super().__init__()
         self.id: int = next(Event.id_gen)
         self.event_type: str = args.event_type
+        self.time: int = args.time
 
     def run(self):
         raise NotImplementedError("Tag event wasn't implemented")
 
     def __str__(self):
-        # TODO: add additional info for logging
         return f"Event.{self.event_type}{{id={self.id}}}"
