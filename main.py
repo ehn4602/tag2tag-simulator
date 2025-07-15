@@ -322,10 +322,6 @@ def load_txt(
                 elif info[0] == "default":
                     default = parse_default(info[1:3], default, serializer)
                 elif info[0] == "event":
-                    # event = info[1:]
-                    # times = [e[0] for e in events]
-                    # position = bisect.bisect_left(times, info[1])
-                    # events.insert(position, event)
 
                     event_args = {}
                     event_args["delay"] = int(info[1])

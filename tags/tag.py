@@ -121,7 +121,7 @@ class Tag(Positionable):
     def from_dict(
         cls,
         env: Environment,
-        logger: LoggerBase,
+        logger,
         timer: TimerScheduler,
         name: str,
         data,

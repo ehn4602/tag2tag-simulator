@@ -237,7 +237,7 @@ class InputMachine(ExecuteMachine, TimerAcceptor):
 
 class ProcessingMachine(ExecuteMachine):
     def __init__(self, init_state, output: "OutputMachine", logger: MachineLogger):
-        super(self).__init__(init_state)
+        super().__init__(init_state)
         self.output = output
         self.logger = logger
 
