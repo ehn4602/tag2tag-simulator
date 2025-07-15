@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import List, Optional, Self, Dict, Any, TYPE_CHECKING
+from typing import List, Optional, Self, Dict, Any, TYPE_CHECKING
 from abc import ABC, abstractmethod
 from logging import Logger
 
@@ -21,21 +22,27 @@ class PhysicsInterface:
 
 
 class Timer:
-    def __init__(self, timer_acceptor: "TimerAcceptor"):
-        self.timer_acceptor = timer_acceptor
-        self.next_run: Optional[int] = None
+    def __init__(self, timer_acceptor: "TimerAcceptor", next_run: int):
+        self._timer_acceptor = timer_acceptor
+        self._next_run = next_run
+        self._is_canceled = False
 
-    def set_next_run(self, next_run: int):
-        self.next_run = next_run
+    def get_next_run(self):
+        return self._next_run
+
+    def cancel(self):
+        self._is_canceled = True
+
+    def is_canceled(self):
+        return self._is_canceled
 
     def run(self):
-        self.timer_acceptor.on_timer()
-        self.next_run = None
+        if not self.is_canceled():
+            self._timer_acceptor.on_timer()
+            self.cancel()
 
     def __lt__(self, other: Self) -> bool:
-        if self.next_run is None:
-            return False
-        return self.next_run < other.next_run
+        return self._next_run < other._next_run
 
 
 class TimerScheduler:
@@ -46,55 +53,51 @@ class TimerScheduler:
         self.next_run: Optional[int] = None
         self.process = self.env.process(self.run())
 
-    def add_timer(self, timer_acceptor: "TimerAcceptor"):
-        timer_acceptor_id = len(self.timers)
-        self.timers.add(Timer(timer_acceptor))
-        return timer_acceptor_id
-
     def run(self):
         while True:
-            self.timers.sort()
-            next_timer: Timer = self.timers[0]
-            self.next_run = next_timer.next_run
-            yield from self.handle_next_run(next_timer)
+            if len(self.timers) != 0 and self.timers[0].get_next_run() <= self.env.now:
+                self.timers[0].run()
+                heapq.heappop(self.timers)
+            delay = None
+            if len(self.timers) == 0:
+                # absurdly large value
+                delay = 1e6
+                self.next_run = None
+            else:
+                self.next_run = self.timers[0].get_next_run()
+                delay = self.next_run - self.env.now
+            try:
+                yield self.env.timeout(delay)
+            except Interrupt:
+                pass
 
-    def handle_next_run(self, next_timer: Timer):
-        try:
-            if self.next_run is None:
-                # Big number (idk where python) int.MAX_VALUE is
-                yield self.env.timeout(999999999)
-                return
-            delay = self.next_run - self.env.now
-            yield self.env.timeout(delay)
-        except Interrupt:
-            return
-        next_timer.run()
-
-    def set_timer(self, timer_acceptor_id: int, delay: int):
+    def set_timer(self, timer_acceptor: TimerAcceptor, delay: int) -> Timer:
         """
         Schedules a timer event
         """
         assert delay >= 0
-        timer = self.timers[timer_acceptor_id]
-        timer.next_run = self.env.now + delay
-        if self.next_run is None:
-            return
-        if timer.next_run < self.next_run:
+        timer = Timer(timer_acceptor, self.env.now + delay)
+        heapq.heappush(self.timers, timer)
+        if self.next_run is None or self.timers[0].get_next_run() < self.next_run:
             self.process.interrupt()
+        return timer
 
 
 # Maybe rename to TimerAccessor
 class TimerAcceptor(ABC):
-
     def __init__(self, timer: TimerScheduler):
-        self._timer = timer
-        self._timer_acceptor_id = self._timer.add_timer(self)
+        self._scheduler = timer
+        self._last_timer: Optional[Timer] = None
 
     def set_timer(self, delay: int):
         """
         Schedules a timer event
         """
-        self._timer.set_timer(self._timer_acceptor_id, self, delay)
+        if self._last_timer is not None:
+            self._last_timer.cancel()
+            self._last_timer = None
+        if delay != 0:
+            self._last_timer = self._scheduler.set_timer(self, delay)
 
     # @abstractmethod
     # def on_timer(self):
@@ -283,11 +286,14 @@ class InputMachine(ExecuteMachine, TimerAcceptor):
 
     def _cmd_set_timer(self, timer_reg):
         self.tag_machine.timer.set_timer(self, self.registers[timer_reg])
+        self.tag_machine.timer.set_timer(self, self.registers[timer_reg])
 
     def _cmd_save_voltage(self, out_reg):
         self.registers[out_reg] = self.tag_machine.tag.read_voltage()
+        self.registers[out_reg] = self.tag_machine.tag.read_voltage()
 
     def _cmd_send_bit(self, reg):
+        self.tag_machine.processing_machine.on_recv_bit(self.registers[reg])
         self.tag_machine.processing_machine.on_recv_bit(self.registers[reg])
 
     def _cmd_forward_voltage(self):
@@ -317,8 +323,10 @@ class ProcessingMachine(ExecuteMachine):
 
     def _cmd_send_int_out(self, reg):
         self.tag_machine.output_machine.on_recv_int(self.registers[reg])
+        self.tag_machine.output_machine.on_recv_int(self.registers[reg])
 
     def _cmd_send_int_log(self, reg):
+        self.tag_machine.logger.log(str(self.registers[reg]))
         self.tag_machine.logger.log(str(self.registers[reg]))
 
 
@@ -333,6 +341,7 @@ class OutputMachine(ExecuteMachine, TimerAcceptor):
         self.tag_machine.tag.set_mode_listen()
 
     def _cmd_set_timer(self, time):
+        self.tag_machine.timer.set_timer(self, time)
         self.tag_machine.timer.set_timer(self, time)
 
     def on_recv_int(self, n: int):
@@ -354,6 +363,7 @@ class TagMachine:
         self.logger = MachineLogger(logger)
 
     def set_tag(self, tag: Tag):
+        self.tag = tag
         self.tag = tag
 
     def prepare(self):

@@ -115,9 +115,6 @@ class Tag(Positionable):
             "x": self.pos[0],
             "y": self.pos[1],
             "z": self.pos[2],
-            "x": self.pos[0],
-            "y": self.pos[1],
-            "z": self.pos[2],
         }
 
     @classmethod
