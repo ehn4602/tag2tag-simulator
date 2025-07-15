@@ -7,7 +7,7 @@ from simpy import Environment
 from abc import ABC, abstractmethod
 
 from util.types import Position
-from tags.state_machine import TagMachine, TimerScheduler, LoggerBase
+from tags.state_machine import TagMachine, TimerScheduler, MachineLogger
 
 class TagMode(ABC):
     @abstractmethod
@@ -88,13 +88,13 @@ class Tag(Positionable):
         """For placing tags into dicts correctly on JSON"""
         return {
             "tag_machine": self.tag_machine.to_dict(),
-            "x": self.position[0],
-            "y": self.position[1],
-            "z": self.position[2],
+            "x": self.pos[0],
+            "y": self.pos[1],
+            "z": self.pos[2],
         }
     
     @classmethod
-    def from_dict(cls, env: Environment, logger: LoggerBase, timer: TimerScheduler, name: str, data):
+    def from_dict(cls, env: Environment, logger: MachineLogger, timer: TimerScheduler, name: str, data):
         """Creates a tag object from a JSON input
 
         Args:
@@ -104,7 +104,7 @@ class Tag(Positionable):
         Returns:
             tag: returns tag loaded from JSON
         """
-        tag_machine = TagMachine.from_dict(timer, logger, data["tag_machine"])
+        tag_machine = TagMachine.from_dict(timer, data["tag_machine"])
         tag = cls(env, name, tag_machine, TagModeReflect(0), (data["x"], data["y"], data["z"]))
         tag_machine.set_tag(tag)
         return tag
