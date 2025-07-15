@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional, Dict, TYPE_CHECKING
+from typing import List, Optional, Dict, Any, TYPE_CHECKING
 from abc import ABC, abstractmethod
 from logging import Logger
 
@@ -37,7 +37,7 @@ class TimerAcceptor:
 
 class State:
     def __init__(self, name: str):
-        self.transitions = {}
+        self.transitions: dict[str, tuple[Any, State]] = {}
         self.name = name
 
     def add_transition(self, expect_symbol: str, method, state: "State"):
@@ -72,7 +72,7 @@ class StateSerializer:
 
 
 class StateMachine:
-    def __init__(self, init_state):
+    def __init__(self, init_state: State):
         self.state = init_state
         self.init_state = init_state
 
@@ -111,16 +111,11 @@ class MachineLogger:
 class ExecuteMachine(StateMachine):
     registers: List[int | float]
 
-    def __init__(self, init_state):
+    def __init__(self, tag_machine: TagMachine, init_state: State):
         super(self).__init__(init_state)
+        self.tag_machine = tag_machine
         self.transition_queue = None
         self.registers = [0 for _ in range(8)]
-    
-    def set_tag(self, tag: Tag):
-        """
-        Must be called after __init__ and before anything else
-        """
-        self.tag = tag
 
     def _cmd_mov(self, dst, src):
         """
@@ -181,23 +176,21 @@ class ExecuteMachine(StateMachine):
 
 class InputMachine(ExecuteMachine, TimerAcceptor):
     def __init__(
-        self, init_state, timer: TimerScheduler, processing_machine: "ProcessingMachine"
+        self, tag_machine: TagMachine, init_state: State
     ):
-        super(self).__init__(init_state)
-        self.processing_machine = processing_machine
-        self.timer = timer
+        super(self).__init__(tag_machine, init_state)
 
     def _cmd_set_timer(self, timer_reg):
-        self.timer.set_timer(self, self.registers[timer_reg])
+        self.tag_machine.timer.set_timer(self, self.registers[timer_reg])
 
     def _cmd_save_voltage(self, out_reg):
-        self.registers[out_reg] = self.tag.read_voltage()
+        self.registers[out_reg] = self.tag_machine.tag.read_voltage()
 
     def _cmd_send_bit(self, reg):
-        self.processing_machine.on_recv_bit(self.registers[reg])
+        self.tag_machine.processing_machine.on_recv_bit(self.registers[reg])
 
     def _cmd_forward_voltage(self):
-        self.processing_machine.on_recv_voltage(self.world_interface.read_voltage())
+        self.tag_machine.processing_machine.on_recv_voltage(self.tag_machine.tag.read_voltage())
 
     def prepare(self):
         self._accept_symbol("init")
@@ -208,11 +201,10 @@ class InputMachine(ExecuteMachine, TimerAcceptor):
 
 class ProcessingMachine(ExecuteMachine):
     def __init__(
-        self, init_state, output: "OutputMachine", logger: MachineLogger
+        self, tag_machine: TagMachine, init_state: State
     ):
-        super(self).__init__(init_state)
-        self.output = output
-        self.logger = logger
+        super(self).__init__(tag_machine, init_state)
+        self.tag_machine = tag_machine
 
     def on_recv_bit(self, val: bool):
         self.registers[7] = val and 1 or 0
@@ -223,25 +215,24 @@ class ProcessingMachine(ExecuteMachine):
         self._accept_symbol("on_recv_voltage")
 
     def _cmd_send_int_out(self, reg):
-        self.output.on_recv_int(self.registers[reg])
+        self.tag_machine.output_machine.on_recv_int(self.registers[reg])
 
     def _cmd_send_int_log(self, reg):
-        self.logger.log(str(self.registers[reg]))
+        self.tag_machine.logger.log(str(self.registers[reg]))
 
 
 class OutputMachine(ExecuteMachine, TimerAcceptor):
-    def __init__(self, init_state, timer: TimerScheduler):
-        super(self).__init__(init_state)
-        self.timer = timer
+    def __init__(self, tag_machine: TagMachine, init_state: State):
+        super(self).__init__(tag_machine, init_state)
 
     def _cmd_set_antenna(self, n: int):
-        self.tag.set_mode_reflect(n)
+        self.tag_machine.tag.set_mode_reflect(n)
     
     def _cmd_set_listen(self):
-        self.tag.set_mode_listen()
+        self.tag_machine.tag.set_mode_listen()
 
     def _cmd_set_timer(self, time):
-        self.timer.set_timer(self, time)
+        self.tag_machine.timer.set_timer(self, time)
 
     def on_recv_int(self, n: int):
         self.registers[7] = n
@@ -249,19 +240,19 @@ class OutputMachine(ExecuteMachine, TimerAcceptor):
 
 
 class TagMachine:
-    def __init__(self, init_states, timer: TimerScheduler, logger: MachineLogger):
-        self.output_machine = OutputMachine(init_states[2], timer)
-        self.processing_machine = ProcessingMachine(
-            init_states[1], self.output_machine, logger
-        )
+    def __init__(self, init_states: tuple[State, State, State], timer: TimerScheduler, logger: Logger):
+        self.timer = timer
         self.input_machine = InputMachine(
-            init_states[0], timer, self.processing_machine
+            self, init_states[0]
         )
+        self.processing_machine = ProcessingMachine(
+            self, init_states[1]
+        )
+        self.output_machine = OutputMachine(self, init_states[2])
+        self.logger = MachineLogger(logger)
 
     def set_tag(self, tag: Tag):
-        self.input_machine.set_tag(tag)
-        self.processing_machine.set_tag(tag)
-        self.output_machine.set_tag(tag)
+        self.tag = tag
 
     def prepare(self):
         self.input_machine.prepare()
@@ -274,5 +265,5 @@ class TagMachine:
             }
     
     @classmethod
-    def from_dict(cls, timer: TimerScheduler, logger: MachineLogger, data):
+    def from_dict(cls, timer: TimerScheduler, logger: Logger, data):
         return cls((State.from_dict(data["input_machine"]), State.from_dict(data["processing_machine"]), State.from_dict(data["output_machine"])), timer, logger)
