@@ -4,10 +4,7 @@ default gain 0
 default exciter_power 50 # Comment example, same format as arguments
 default proccessing A
 default output B
-exciter alpha 0 0 0 
-exciter beta 5 0 0
-exciter gamma 0 0 5
-exciter delta 5 0 5
+exciter 10 -10 10 
 tag mercury 2 2 2
 tag venus 0 8 -3 
 tag earth 5 3 5

@@ -8,6 +8,7 @@ import queue
 import sys
 from logging.handlers import QueueHandler, QueueListener
 from pathlib import Path
+from typing import Optional
 
 from tags.tag import *
 from tags.state_machine import *
@@ -26,22 +27,27 @@ DEFAULT_STATS = {
 
 
 def load_json(
-    file_input, serializer, timer=None, logger=None, environment=None, default=None
+    file_input: str,
+    serializer: StateSerializer,
+    timer: Optional[TimerScheduler] = None,
+    logger: Optional[logging.Logger] = None,
+    environment: Optional[Environment] = None,
+    default: Optional[dict] = None,
 ):
     """Loads config file, gaining information it needs to run
 
     Returns:
-        tags,events,default: List of information thats stored in JSON file
+        exciter,tags,events,default: List of information thats stored in JSON file
     """
+
+    default_exciter = Exciter(environment, "default", (0, 0, 0))
     if os.path.exists(file_input):
         with open(file_input, "r") as f:
             try:
                 raw_data = json.load(f)
             except json.JSONDecodeError:
                 if file_input == CONFIG_PATH:
-                    return None, {}, [], DEFAULT_STATS
-                elif file_input == STATE_PATH:
-                    return {}, None, None, None
+                    return default_exciter, {}, [], DEFAULT_STATS
                 else:
                     print("error: file doesn't exist")
                     sys.exit(1)
@@ -69,7 +75,7 @@ def load_json(
             print("error: invalid JSON format")
             sys.exit(1)
     elif file_input == CONFIG_PATH:
-        return None, {}, [], DEFAULT_STATS
+        return default_exciter, {}, [], DEFAULT_STATS
     elif file_input == STATE_PATH:
         return {}, None, None, None
     else:
@@ -78,7 +84,13 @@ def load_json(
     return None, None, None, None
 
 
-def save_config(exciter, objects, events, default, serializer):
+def save_config(
+    exciter: Exciter,
+    objects: dict,
+    events: list,
+    default: dict,
+    serializer: StateSerializer,
+):
     """offloads changes back to JSON file
 
     Args:
@@ -117,7 +129,7 @@ def save_config(exciter, objects, events, default, serializer):
         )
 
 
-def parse_obj(vals):
+def parse_obj(vals: list):
     """Ensures the tag argument has the correct values
     Args:
         vals (List): tag ID, and its coordinats
@@ -134,7 +146,17 @@ def parse_obj(vals):
     return id, coords[0], coords[1], coords[2]
 
 
-def parse_default(vals, default, serializer: StateSerializer):
+def parse_default(vals, default: dict, serializer: StateSerializer):
+    """parses argumnet values to fill out default value correctly
+
+    Args:
+        vals (List): List of vals given via argument
+        default (Dict): Dictionary representing default information
+        serializer (StateSerializer): serializer with information about the known states in the system
+
+    Returns:
+        default: updated dictionary
+    """
     if vals[0] in ["exciter_power", "resistive_load", "gain"]:
         try:
             val = float(vals[1])
@@ -173,10 +195,10 @@ def parse_args():
     ),
     parser.add_argument(
         "--exciter",
-        nargs=4,
-        metavar=("ID", "X", "Y", "Z"),
+        nargs=3,
+        metavar=("X", "Y", "Z"),
         required=False,
-        help="place an exciter with its Unique ID at coordinates X,Y,Z",
+        help="moves the exciter to coordinates X,Y,Z",
     ),
     parser.add_argument(
         "--remove", type=str, required=False, help="Remove a specific tag based on ID"
@@ -202,7 +224,17 @@ def parse_args():
     return parser.parse_args()
 
 
-def load_states(data, serializer, default):
+def load_states(data: dict, serializer: StateSerializer, default: dict):
+    """loads states from state_machine or states config file
+
+    Args:
+        data (dict): JSON dict file
+        serializer (StateSerializer): Serializer with information about states within the system
+        default (dict): dictionary with default information
+
+    Returns:
+        default: updated default, only updates if state_machine loaded with type value on it.
+    """
 
     format_type = "State machine"
     raw_states = data.get("states", [])
@@ -225,7 +257,12 @@ def load_states(data, serializer, default):
         return None
 
 
-def load_txt(filepath, environment, serializer):
+def load_txt(
+    filepath: str,
+    environment: Environment,
+    serializer: StateSerializer,
+    logger: logging,
+):
     """Loads arguments via a text file. Format is the same as arguments
     Args:
         filepath (string): text file to load in
@@ -233,6 +270,8 @@ def load_txt(filepath, environment, serializer):
     Returns:
         objects,events,default: information about the simulation configuration
     """
+
+    timer = None  # Placeholder, remove later
 
     default = DEFAULT_STATS
     events = []
@@ -251,8 +290,6 @@ def load_txt(filepath, environment, serializer):
                 info[0] = info[0].lower()
                 if info[0] == "tag":
 
-                    timer = None  # is this tag specific or global?
-                    logger = None  # Set up logger later
                     init_states = []
                     init_states.append(
                         serializer.get_state(default.get("input_machine_id"))
@@ -267,7 +304,7 @@ def load_txt(filepath, environment, serializer):
                     tag = Tag(environment, info[1], tagmachine, None, info[2:5])
                     objects[info[1]] = tag
                 elif info[0] == "exciter":
-                    exciter = Exciter(environment, info[1], info[2:5])
+                    exciter = Exciter(environment, "default", info[1:4])
                 elif info[0] == "default":
                     default = parse_default(info[1:3], default, serializer)
                 elif info[0] == "event":
@@ -288,7 +325,7 @@ def load_txt(filepath, environment, serializer):
                                 default = states_output
                         else:
                             print("Skipping! invalid format:", info[1])
-
+            print(filepath, "successfully loaded")
             return exciter, objects, events, default
 
 
@@ -371,11 +408,13 @@ def init_logger(
 def main():
 
     serializer = StateSerializer()
+
+    # Temp
     environment = Environment(0)
-    timer = "Temp"
+    timer = "Temp"  # Remove later when timer/schedule is placed inside tags constructor
+    ## TODO give tags their approriate tagmodes
 
     logger, q_listener = init_logger(logging.INFO)
-    timer = "Temp"
     load_json(STATE_PATH, serializer)
 
     main_exciter, objects, events, default = load_json(
@@ -397,17 +436,18 @@ def main():
         file_type = args.load.split(".")[-1]
         if file_type == "txt":
             if args.add:  # appends loaded arguments instead of overwrite
-                add_machines, add_objects, add_events, add_default = load_txt(
-                    args.load, environment, serializer
+                temp_exciter, add_objects, add_events, add_default = load_txt(
+                    args.load, environment, serializer, logger
                 )
                 objects.update(add_objects)
                 default.update(add_default)
-                # machines.update(add_machines)
                 events = list(heapq.merge(events, add_events, key=lambda x: x[0]))
             else:  # overwrites previouse saved data
-                machines, objects, events, default = load_txt(
-                    args.load, environment, serializer
+                temp_exciter, objects, events, default = load_txt(
+                    args.load, environment, serializer, logger
                 )
+            if temp_exciter is not None:
+                main_exciter = temp_exciter
         elif file_type == "json":
             temp_exciter, temp_objects, temp_events, temp_default = load_json(
                 args.load, serializer, default=default
@@ -422,8 +462,8 @@ def main():
         else:
             print("error: file type not supported")
     if args.exciter:
-        id, x, y, z = parse_obj(args.exciter, objects)
-        main_exciter = Exciter(None, id, (x, y, z))
+        x, y, z = args.exciter[0:3]
+        main_exciter = Exciter(environment, "default", (x, y, z))
         print("Exciter moved to ", x, y, z)
     if args.tag:
         if not machine_defined:
@@ -434,8 +474,6 @@ def main():
             sys.exit(1)
         else:
             id, x, y, z = parse_obj(args.tag)
-            timer = None  # is this tag specific or global?
-            logger = None  # Set up logger later
             init_states = []
             init_states.append(serializer.get_state(default.get("input_machine_id")))
             init_states.append(
@@ -443,12 +481,9 @@ def main():
             )
             init_states.append(serializer.get_state(default.get("output_machine_id")))
             tagmachine = TagMachine(init_states, timer, logger)
-            new_obj = Tag(None, id, tagmachine, "Listen", (x, y, z))
+            new_obj = Tag(Environment, id, tagmachine, "Listen", (x, y, z))
             objects[id] = new_obj
-            if id in objects:
-                print("Tag:", id, "Moved to coordinates", x, y, z)
-            else:
-                print("Tag:", id, "Added at coordinate", x, y, z)
+            print("Tag:", id, "moved to coordinates", x, y, z)
 
     if args.default is not None:  # updates default value
         default = parse_default(args.default, default, serializer=serializer)
@@ -483,9 +518,6 @@ def main():
             case "states":
                 for key, value in serializer.get_state_map().items():
                     print(f"{key}: {value.to_dict()}")
-            case "machines":
-                for key, value in machines.items():
-                    print(f"{key}: {value.to_dict(serializer,"placeholder")}")
 
     # Events will be reconfigure later to work along side events.json
     if args.event:  # adds an event
