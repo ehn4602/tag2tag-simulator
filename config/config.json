@@ -3,106 +3,97 @@
     "Default": {
         "exciter_power": 50.0,
         "gain": 0,
-        "resistive_load": 10.0
+        "resistive_load": 75.0,
+        "input_machine_id": "A",
+        "proccessing_machine_id": "A",
+        "output_machine_id": "B"
+    },
+    "Exciter": {
+        "id": "default",
+        "x": "10",
+        "y": "10",
+        "z": "10"
     },
     "Objects": {
-        "alpha": {
-            "model": "exciter",
-            "x": "0",
-            "y": "0",
-            "z": "0"
-        },
-        "beta": {
-            "model": "exciter",
-            "x": "5",
-            "y": "0",
-            "z": "0"
-        },
-        "gamma": {
-            "model": "exciter",
-            "x": "0",
-            "y": "0",
-            "z": "5"
-        },
-        "delta": {
-            "model": "exciter",
-            "x": "5",
-            "y": "0",
-            "z": "5"
-        },
         "mercury": {
-            "model": "tag",
+            "tag_machine": {
+                "input_machine": "A",
+                "processing_machine": "A",
+                "output_machine": "B"
+            },
             "x": "2",
             "y": "2",
             "z": "2"
         },
         "venus": {
-            "model": "tag",
+            "tag_machine": {
+                "input_machine": "A",
+                "processing_machine": "A",
+                "output_machine": "B"
+            },
             "x": "0",
             "y": "8",
-            "z": "-3"
+            "z": "3"
         },
         "earth": {
-            "model": "tag",
+            "tag_machine": {
+                "input_machine": "A",
+                "processing_machine": "A",
+                "output_machine": "B"
+            },
             "x": "5",
             "y": "3",
             "z": "5"
         },
         "mars": {
-            "model": "tag",
+            "tag_machine": {
+                "input_machine": "A",
+                "processing_machine": "A",
+                "output_machine": "B"
+            },
             "x": "7",
-            "y": "-1",
-            "z": "-2"
+            "y": "1",
+            "z": "2"
         },
         "jupiter": {
-            "model": "tag",
+            "tag_machine": {
+                "input_machine": "A",
+                "processing_machine": "A",
+                "output_machine": "B"
+            },
             "x": "3",
             "y": "3",
             "z": "3"
         },
         "saturn": {
-            "model": "tag",
+            "tag_machine": {
+                "input_machine": "A",
+                "processing_machine": "A",
+                "output_machine": "B"
+            },
             "x": "7",
-            "y": "-8",
+            "y": "8",
             "z": "1"
         },
         "uranus": {
-            "model": "tag",
+            "tag_machine": {
+                "input_machine": "A",
+                "processing_machine": "A",
+                "output_machine": "B"
+            },
             "x": "0",
             "y": "2",
             "z": "4"
         },
         "neptune": {
-            "model": "tag",
-            "x": "-15",
-            "y": "-2",
-            "z": "-6"
+            "tag_machine": {
+                "input_machine": "A",
+                "processing_machine": "A",
+                "output_machine": "B"
+            },
+            "x": "15",
+            "y": "2",
+            "z": "6"
         }
-    },
-    "events": [
-        [
-            "00:00:01",
-            "neptune",
-            "uranus",
-            "mpp"
-        ],
-        [
-            "00:00:07",
-            "uranus",
-            "neptune",
-            "mpp"
-        ],
-        [
-            "00:02:17",
-            "mercury",
-            "earth",
-            "ping"
-        ],
-        [
-            "00:05:02",
-            "jupiter",
-            "mercury",
-            "ping"
-        ]
-    ]
+    }
 }
