@@ -91,6 +91,7 @@ class Exciter(PhysicsObject):
             "power": self.power,
             "gain": self.gain,
             "impedance": self.impedance,
+            "frequency": self.frequency,
         }
 
     @classmethod
@@ -102,6 +103,7 @@ class Exciter(PhysicsObject):
             data["power"],
             data["gain"],
             data["impedance"],
+            data["frequency"],
         )
 
 
@@ -168,8 +170,9 @@ class Tag(PhysicsObject):
         logger,
         timer: TimerScheduler,
         name: str,
-        data,
+        data: dict,
         serializer,
+        default: dict,
     ):
         """Creates a tag object from a JSON input
 
@@ -184,7 +187,20 @@ class Tag(PhysicsObject):
             timer, logger, data["tag_machine"], serializer
         )
         tag = cls(
-            env, name, tag_machine, TagMode.LISTENING, (data["x"], data["y"], data["z"])
+            env,
+            name,
+            tag_machine,
+            TagMode.LISTENING,
+            (
+                data["x"],
+                data["y"],
+                data["z"],
+            ),
+            0,
+            default["gain"],
+            default["impedance"],
+            default["frequency"],
+            default["reflection_coefficients"],
         )
         tag_machine.set_tag(tag)
         return tag

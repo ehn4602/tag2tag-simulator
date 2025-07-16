@@ -1,5 +1,5 @@
 load ./examples/example_machine.json
---default resistive_load 75
+--default impedance 75
 default gain 0
 default exciter_power 50 # Comment example, same format as arguments
 default proccessing A
