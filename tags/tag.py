@@ -53,12 +53,12 @@ class Exciter(Positionable):
         pos: Position,
         power: float,
         gain: float,
-        impedence: float,
+        impedance: float,
     ):
         super().__init__(env, name, pos)
         self.power = power
         self.gain = gain
-        self.impedence = impedence
+        self.impedance = impedance
 
     def to_dict(self):
         """For placing exciters from dicts correctly to JSON"""
@@ -69,7 +69,7 @@ class Exciter(Positionable):
             "z": self.pos[2],
             "power": self.power,
             "gain": self.gain,
-            "impedence": self.impedence,
+            "impedance": self.impedance,
         }
 
     @classmethod
@@ -80,7 +80,7 @@ class Exciter(Positionable):
             (data["x"], data["y"], data["z"]),
             data["power"],
             data["gain"],
-            data["impedence"],
+            data["impedance"],
         )
 
 
