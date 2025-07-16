@@ -46,8 +46,19 @@ class Positionable:
 class Exciter(Positionable):
     """Class for Exciters"""
 
-    def __init__(self, env: Environment, name: str, pos: Position):
-        return super().__init__(env, name, pos)
+    def __init__(
+        self,
+        env: Environment,
+        name: str,
+        pos: Position,
+        power: float,
+        gain: float,
+        impedence: float,
+    ):
+        super().__init__(env, name, pos)
+        self.power = power
+        self.gain = gain
+        self.impedence = impedence
 
     def to_dict(self):
         """For placing exciters from dicts correctly to JSON"""
@@ -56,11 +67,21 @@ class Exciter(Positionable):
             "x": self.pos[0],
             "y": self.pos[1],
             "z": self.pos[2],
+            "power": self.power,
+            "gain": self.gain,
+            "impedence": self.impedence,
         }
 
     @classmethod
     def from_dict(cls, environment, data):
-        return Exciter(environment, data["id"], (data["x"], data["y"], data["z"]))
+        return Exciter(
+            environment,
+            data["id"],
+            (data["x"], data["y"], data["z"]),
+            data["power"],
+            data["gain"],
+            data["impedence"],
+        )
 
 
 class Tag(Positionable):
