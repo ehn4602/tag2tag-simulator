@@ -21,10 +21,12 @@ EVENT_PATH = "./config/events.json"
 DEFAULT_STATS = {
     "exciter_power": 500.0,
     "gain": 0.0,
-    "resistive_load": 50,
+    "impedance": 50,
+    "frequency": 100,
     "input_machine_id": "UNKNOWN",
     "proccessing_machine_id": "UNKOWN",
     "output_machine_id": "UNKNOWN",
+    "reflection_coefficients": [],
 }
 
 
@@ -42,7 +44,15 @@ def load_json(
         exciter,tags,events,default: List of information thats stored in JSON file
     """
 
-    default_exciter = Exciter(environment, "default", (0, 0, 0))
+    default_exciter = Exciter(
+        environment,
+        "default",
+        (0, 0, 0),
+        DEFAULT_STATS["exciter_power"],
+        DEFAULT_STATS["gain"],
+        DEFAULT_STATS["impedance"],
+        DEFAULT_STATS["frequency"],
+    )
     if os.path.exists(file_input):
         with open(file_input, "r") as f:
             try:
@@ -52,13 +62,14 @@ def load_json(
                     return default_exciter, {}, None, DEFAULT_STATS
                 elif file_input == EVENT_PATH:
                     return None, None, [], None
+                elif file_input == STATE_PATH:
+                    return None, None, None, None
                 else:
                     print("error: file doesn't exist")
                     sys.exit(1)
         format = raw_data.get("Format")
         if format == "config":
             raw_objects = raw_data.get("Objects", {})
-            # raw_events = raw_data.get("events", [])
 
             default = raw_data.get("Default")
             if raw_data.get("Exciter") != "UNDEFINED":
@@ -66,10 +77,11 @@ def load_json(
             else:
                 exciter = default_exciter
             tags = {
-                id: Tag.from_dict(environment, logger, timer, id, val, serializer)
+                id: Tag.from_dict(
+                    environment, logger, timer, id, val, serializer, default
+                )
                 for id, val in raw_objects.items()
             }
-            # events = [event for event in raw_events]
             return exciter, tags, None, default
         elif format == "state_machine":
             state_output = load_states(raw_data, serializer, default)
@@ -111,10 +123,12 @@ def save_config(
                 "Default": {
                     "exciter_power": default["exciter_power"],  # (mW)
                     "gain": 0,  # (dBi) Isotropic by default
-                    "resistive_load": default["resistive_load"],  # (ohms)
+                    "impedance": default["impedance"],  # (ohms),
+                    "frequency": default["frequency"],  # Unit?
                     "input_machine_id": default["input_machine_id"],
                     "proccessing_machine_id": default["proccessing_machine_id"],
                     "output_machine_id": default["output_machine_id"],
+                    "reflection_coefficients": default["reflection_coefficients"],
                 },
                 "Exciter": (
                     Exciter.to_dict(exciter) if exciter is not None else "UNDEFINED"
@@ -169,7 +183,7 @@ def parse_default(vals, default: dict, serializer: StateSerializer):
     Returns:
         default: updated dictionary
     """
-    if vals[0] in ["exciter_power", "resistive_load", "gain"]:
+    if vals[0].lower() in ["exciter_power", "impedance", "gain", "frequency"]:
         try:
             val = float(vals[1])
             default[vals[0]] = val
@@ -187,7 +201,7 @@ def parse_default(vals, default: dict, serializer: StateSerializer):
         else:
             print("error: state machine {" + vals[1] + "} does not exist")
             sys.exit(1)
-    print("error: invalid default argument")
+    print("error:", vals[0], "invalid default argument")
     sys.exit(1)
 
 
@@ -317,10 +331,29 @@ def load_txt(
                         serializer.get_state(default.get("output_machine_id"))
                     )
                     tagmachine = TagMachine(init_states, timer, logger)
-                    tag = Tag(environment, info[1], tagmachine, None, info[2:5])
+                    tag = Tag(
+                        environment,
+                        info[1],
+                        tagmachine,
+                        "Listen",
+                        info[2:5],
+                        0,
+                        default["gain"],
+                        default["impedance"],
+                        default["frequency"],
+                        default["reflection_coefficients"],
+                    )
                     objects[info[1]] = tag
                 elif info[0] == "exciter":
-                    exciter = Exciter(environment, "default", info[1:4])
+                    exciter = Exciter(
+                        environment,
+                        "default",
+                        info[1:4],
+                        default["exciter_power"],
+                        default["gain"],
+                        default["impedance"],
+                        default["frequency"],
+                    )
                 elif info[0] == "default":
                     default = parse_default(info[1:3], default, serializer)
                 elif info[0] == "event":
@@ -459,7 +492,15 @@ def main():
             print("error: file type not supported")
     if args.exciter:
         x, y, z = args.exciter[0:3]
-        main_exciter = Exciter(environment, "default", (x, y, z))
+        main_exciter = Exciter(
+            environment,
+            "default",
+            (x, y, z),
+            default["exciter_power"],
+            default["gain"],
+            default["impedance"],
+            default["frequency"],
+        )
         print("Exciter moved to ", x, y, z)
     if args.tag:
         if not machine_defined:
@@ -477,7 +518,18 @@ def main():
             )
             init_states.append(serializer.get_state(default.get("output_machine_id")))
             tagmachine = TagMachine(init_states, timer, logger)
-            new_obj = Tag(Environment, id, tagmachine, "Listen", (x, y, z))
+            new_obj = Tag(
+                Environment,
+                id,
+                tagmachine,
+                "Listen",
+                (x, y, z),
+                0,
+                default["gain"],
+                default["impedance"],
+                default["frequency"],
+                default["reflection_coefficients"],
+            )
             objects[id] = new_obj
             print("Tag:", id, "moved to coordinates", x, y, z)
 
