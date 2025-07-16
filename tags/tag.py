@@ -1,13 +1,9 @@
-from enum import StrEnum, auto
-from typing import List, Self
-import uuid
+from typing import List
 
 from simpy import Environment
 
-from abc import ABC, abstractmethod
-
+from tags.state_machine import TagMachine, TimerScheduler
 from util.types import Position
-from tags.state_machine import TagMachine, TimerScheduler, MachineLogger
 
 
 class TagMode:
@@ -28,13 +24,28 @@ class TagMode:
 TagMode.LISTENING = TagMode(TagMode._LISTENING_IDX)
 
 
-class Positionable:
-    """A Tag or Exciter which can be moved around"""
+class PhysicsObject:
+    """
+    An object which interacts with the physics engine.
+    """
 
-    def __init__(self, env: Environment, name: str, pos: Position):
+    def __init__(
+        self,
+        env: Environment,
+        name: str,
+        pos: Position,
+        power: float,
+        gain: float,
+        impedance: float,
+        frequency: float,
+    ):
         self.env = env
         self.name = name
         self.pos = pos
+        self.power = power
+        self.gain = gain
+        self.impedance = impedance
+        self.frequency = frequency
 
     def get_name(self):
         return self.name
@@ -42,8 +53,20 @@ class Positionable:
     def get_position(self):
         return self.pos
 
+    def get_power(self):
+        return self.power
 
-class Exciter(Positionable):
+    def get_gain(self):
+        return self.gain
+
+    def get_impedance(self):
+        return self.impedance
+
+    def get_frequency(self):
+        return self.frequency
+
+
+class Exciter(PhysicsObject):
     """Class for Exciters"""
 
     def __init__(
@@ -54,11 +77,9 @@ class Exciter(Positionable):
         power: float,
         gain: float,
         impedance: float,
+        frequency: float,
     ):
-        super().__init__(env, name, pos)
-        self.power = power
-        self.gain = gain
-        self.impedance = impedance
+        super().__init__(env, name, pos, power, gain, impedance, frequency)
 
     def to_dict(self):
         """For placing exciters from dicts correctly to JSON"""
@@ -84,7 +105,7 @@ class Exciter(Positionable):
         )
 
 
-class Tag(Positionable):
+class Tag(PhysicsObject):
     """Class for Tags"""
 
     def __init__(
@@ -94,14 +115,15 @@ class Tag(Positionable):
         tag_machine: TagMachine,
         mode: TagMode,
         pos: Position,
+        power: float,
+        gain: float,
+        impedance: float,
+        frequency: float,
         reflection_coefficients: List[float],
     ):
-        super().__init__(env, name, pos)
+        super().__init__(env, name, pos, power, gain, impedance, frequency)
         self.tag_machine = tag_machine
         self.mode = mode
-        self.power = 0
-        self.gain = 0
-        self.resistance = 0
         self.reflection_coefficients = reflection_coefficients
 
     def __str__(self):
