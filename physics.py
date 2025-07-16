@@ -41,11 +41,11 @@ class PhysicsEngine:
         If you want the power delivered to a tag from the exciter, just the
         engine's exciter parameter as tx
         """
-        p_tx = tx.power
-        g_tx = tx.gain
-        g_rx = rx.gain
-        wavelength = c / tx.frequency
-        distance = dist.euclidean(tx.position, rx.position)
+        p_tx = tx.get_power()
+        g_tx = tx.get_gain()
+        g_rx = rx.get_gain()
+        wavelength = c / tx.get_frequency()
+        distance = dist.euclidean(tx.get_position(), rx.get_position())
         return p_tx * g_tx * g_rx * ((wavelength / (4 * pi * distance)) ** 2)
 
     def v_dc(self, tx: Positionable, rx: Tag) -> float:
@@ -62,7 +62,7 @@ class PhysicsEngine:
         The voltage output at the receiver
         """
         power = self.power_tag_rx(tx, tx)
-        v_pk = sqrt((rx.resistance * power) / 500)
+        v_pk = sqrt((rx.get_impedance() * power) / 500)
         return v_pk / (sqrt(2))
 
     def transmitted_voltage(self, tx: Tag, rx: Tag) -> float:
@@ -78,10 +78,10 @@ class PhysicsEngine:
         # tx_pos = tx.position
         # tx_freq = tx.frequency
         # tx_wavelen = c / tx_freq
-        tx_refcoef = tx.active_coefficient
+        tx_refcoef = tx.get_reflection_coefficient()
 
         # rx_pos = rx.position
-        rx_resist = rx.impedance
+        rx_resist = rx.get_impedance()
 
         # d_ex_tx = dist.euclidean(e_pos, tx_pos)
         # d_ex_rx = dist.euclidean(e_pos, rx_pos)
@@ -117,8 +117,8 @@ class PhysicsEngine:
         """
         Gets the signal from a tag or exciter to another tag
         """
-        d = dist.euclidean(tx.position, rx.position)
-        wavelen = c / tx.frequency
+        d = dist.euclidean(tx.get_position(), rx.get_position())
+        wavelen = c / tx.get_frequency()
         self.attenuation(dist, wavelen, 1.0, 1.0) * (e ** (1j * 2 * pi * d / wavelen))
 
     def voltage_at_tag(self, tags: dict[str, Tag], recieving_tag: Tag):
@@ -128,7 +128,7 @@ class PhysicsEngine:
         loops in the backscatter for simplicity.
         """
         ex = self.exciter
-        rx_impedance = recieving_tag.impedance
+        rx_impedance = recieving_tag.get_impedance()
 
         # This will be summed later
         sigs_to_rx = []
@@ -140,7 +140,7 @@ class PhysicsEngine:
                 # Get all of the signals that are currently being sent to rx
 
                 # TODO Get the reflection coeff of the tag properly
-                ref_coef = tag.reflection_coef
+                ref_coef = tag.get_reflection_coefficient()
                 sig_ex_tx = self.get_sig_tx_rx(ex, tag)
                 sig_tx_rx = (
                     sig_ex_tx * ref_coef * self.get_sig_tx_rx(tag, recieving_tag)
