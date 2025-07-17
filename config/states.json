@@ -11,17 +11,61 @@
                 "init": [
                     [
                         "sequence",
-                        ["_comment", "store message in memory"],
-                        ["store_mem_imm", 0, [
-                            1, 1, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1
-                        ]],
-                        ["_comment", "set current transmit index in register 0"],
-                        ["load_imm", 0, 0],
-                        ["_comment", "set end transmit index in register 1"],
-                        ["load_imm", 1, 14],
-                        ["_comment", "wait ~4 intervals"],
-                        ["load_imm", 0, 35],
-                        ["set_timer", 0]
+                        [
+                            "_comment",
+                            "store message in memory"
+                        ],
+                        [
+                            "store_mem_imm",
+                            0,
+                            [
+                                1,
+                                1,
+                                0,
+                                1,
+                                0,
+                                0,
+                                0,
+                                0,
+                                1,
+                                1,
+                                1,
+                                1,
+                                0,
+                                1
+                            ]
+                        ],
+                        [
+                            "_comment",
+                            "set current transmit index in register 0"
+                        ],
+                        [
+                            "load_imm",
+                            0,
+                            0
+                        ],
+                        [
+                            "_comment",
+                            "set end transmit index in register 1"
+                        ],
+                        [
+                            "load_imm",
+                            1,
+                            14
+                        ],
+                        [
+                            "_comment",
+                            "wait ~4 intervals"
+                        ],
+                        [
+                            "load_imm",
+                            0,
+                            35
+                        ],
+                        [
+                            "set_timer",
+                            0
+                        ]
                     ],
                     "sender_processing_1"
                 ]
@@ -33,18 +77,42 @@
                 "on_queue_up": [
                     [
                         "sequence",
-                        ["_comment", "use register 2 as scratch"],
-                        ["load_mem", 2, 0],
-                        ["send_int_out", 2],
-                        ["load_imm", 2, 1],
-                        ["add", 0, 0, 2],
-                        ["cmp", 0, 1]
+                        [
+                            "_comment",
+                            "use register 2 as scratch"
+                        ],
+                        [
+                            "load_mem",
+                            2,
+                            0
+                        ],
+                        [
+                            "send_int_out",
+                            2
+                        ],
+                        [
+                            "load_imm",
+                            2,
+                            1
+                        ],
+                        [
+                            "add",
+                            0,
+                            0,
+                            2
+                        ],
+                        [
+                            "cmp",
+                            0,
+                            1
+                        ]
                     ],
                     "sender_processing_2"
                 ],
                 "on_timer": [
                     [
-                        "self_signal", "on_queue_up"
+                        "self_signal",
+                        "on_queue_up"
                     ],
                     "sender_processing_1"
                 ]
@@ -55,16 +123,27 @@
             "transitions": {
                 "lt": [
                     [
-                        "_comment", "no-op"
+                        "_comment",
+                        "no-op"
                     ],
                     "sender_processing_1"
                 ],
                 "eq": [
                     [
                         "sequence",
-                        ["_comment", "clean up"],
-                        ["load_imm", 2, 0],
-                        ["send_int_out", 2]
+                        [
+                            "_comment",
+                            "clean up"
+                        ],
+                        [
+                            "load_imm",
+                            2,
+                            0
+                        ],
+                        [
+                            "send_int_out",
+                            2
+                        ]
                     ],
                     "EMPTY"
                 ]
@@ -76,12 +155,34 @@
                 "on_recv_int": [
                     [
                         "sequence",
-                        ["load_imm", 0, 1],
-                        ["add", 0, 0, 7],
-                        ["set_antenna", 0],
-                        ["_comment", "store interval time in register 1"],
-                        ["load_imm", 1, 10],
-                        ["set_timer", 1]
+                        [
+                            "load_imm",
+                            0,
+                            1
+                        ],
+                        [
+                            "add",
+                            0,
+                            0,
+                            7
+                        ],
+                        [
+                            "set_antenna",
+                            0
+                        ],
+                        [
+                            "_comment",
+                            "store interval time in register 1"
+                        ],
+                        [
+                            "load_imm",
+                            1,
+                            10
+                        ],
+                        [
+                            "set_timer",
+                            1
+                        ]
                     ],
                     "sender_output_1"
                 ]
@@ -104,13 +205,36 @@
                 "init": [
                     [
                         "sequence",
-                        ["_comment", "store baseline voltage in register 0"],
-                        ["save_voltage", 0],
-                        ["_comment", "store interval time in register 1"],
-                        ["load_imm", 1, 10],
-                        ["set_timer", 1],
-                        ["_comment", "store threshold in register 2"],
-                        ["load_imm", 2, 0.2]
+                        [
+                            "_comment",
+                            "store baseline voltage in register 0"
+                        ],
+                        [
+                            "save_voltage",
+                            0
+                        ],
+                        [
+                            "_comment",
+                            "store interval time in register 1"
+                        ],
+                        [
+                            "load_imm",
+                            1,
+                            10
+                        ],
+                        [
+                            "set_timer",
+                            1
+                        ],
+                        [
+                            "_comment",
+                            "store threshold in register 2"
+                        ],
+                        [
+                            "load_imm",
+                            2,
+                            0.2
+                        ]
                     ],
                     "receiver_input_1"
                 ]
@@ -122,11 +246,29 @@
                 "on_timer": [
                     [
                         "sequence",
-                        ["_comment", "store read voltage in register 3"],
-                        ["save_voltage", 3],
-                        ["sub", 3, 0, 3],
-                        ["abs", 3],
-                        ["compare", 3, 2]
+                        [
+                            "_comment",
+                            "store read voltage in register 3"
+                        ],
+                        [
+                            "save_voltage",
+                            3
+                        ],
+                        [
+                            "sub",
+                            3,
+                            0,
+                            3
+                        ],
+                        [
+                            "abs",
+                            3
+                        ],
+                        [
+                            "compare",
+                            3,
+                            2
+                        ]
                     ],
                     "receiver_input_2"
                 ]
@@ -138,9 +280,18 @@
                 "lt": [
                     [
                         "sequence",
-                        ["_comment", "below threshold"],
-                        ["send_bit", 0],
-                        ["set_timer", 1]
+                        [
+                            "_comment",
+                            "below threshold"
+                        ],
+                        [
+                            "send_bit",
+                            0
+                        ],
+                        [
+                            "set_timer",
+                            1
+                        ]
                     ],
                     "receiver_input_1"
                 ],
@@ -161,9 +312,18 @@
                 "gte": [
                     [
                         "sequence",
-                        ["_comment", "above or at threshold"],
-                        ["send_bit", 1],
-                        ["set_timer", 1]
+                        [
+                            "_comment",
+                            "above or at threshold"
+                        ],
+                        [
+                            "send_bit",
+                            1
+                        ],
+                        [
+                            "set_timer",
+                            1
+                        ]
                     ],
                     "receiver_input_1"
                 ]
@@ -175,7 +335,10 @@
                 "on_recv_bit": [
                     [
                         "sequence",
-                        ["send_int_log", 7]
+                        [
+                            "send_int_log",
+                            7
+                        ]
                     ],
                     "receiver_processing_0"
                 ]
