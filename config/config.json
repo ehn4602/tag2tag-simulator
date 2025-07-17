@@ -3,16 +3,26 @@
     "Default": {
         "exciter_power": 50.0,
         "gain": 0,
-        "resistive_load": 75.0,
+        "impedance": 50.0,
+        "frequency": 1000000,
         "input_machine_id": "A",
         "proccessing_machine_id": "A",
-        "output_machine_id": "B"
+        "output_machine_id": "B",
+        "reflection_coefficients": [
+            0,
+            0,
+            1
+        ]
     },
     "Exciter": {
         "id": "default",
         "x": "10",
         "y": "10",
-        "z": "10"
+        "z": "10",
+        "power": 1,
+        "gain": 100,
+        "impedance": 50.0,
+        "frequency": 1000000
     },
     "Objects": {
         "Sender": {
