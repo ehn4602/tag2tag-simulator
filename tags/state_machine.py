@@ -283,7 +283,7 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
     def _cmd_sequence(self, *cmd_list):
         for cmd in cmd_list:
             (cmd_first, *cmd_rest) = cmd
-            self["_cmd_" + cmd_first](*cmd_rest)
+            getattr(self, "_cmd_" + cmd_first)(self, *cmd_rest)
 
     def _cmd_self_trigger(self, symbol):
         self._accept_symbol(symbol)
@@ -311,7 +311,7 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
             cmd = self.transition(symbol)
             if cmd is not None:
                 (cmd_first, *cmd_rest) = cmd
-                self["_cmd_" + cmd_first](*cmd_rest)
+                getattr(self, "_cmd_" + cmd_first)(self, *cmd_rest)
         self.transition_queue = None
 
 
