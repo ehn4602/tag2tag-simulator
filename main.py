@@ -78,9 +78,7 @@ def load_json(
             else:
                 exciter = default_exciter
             tags = {
-                id: Tag.from_dict(
-                    environment, logger, id, val, serializer, default
-                )
+                id: Tag.from_dict(environment, logger, id, val, serializer, default)
                 for id, val in raw_objects.items()
             }
             return exciter, tags, None, default
