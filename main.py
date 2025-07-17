@@ -78,7 +78,14 @@ def load_json(
                 exciter = default_exciter
             tags = {
                 id: Tag.from_dict(
-                    environment, logger, timer, id, val, serializer, default
+                    environment,
+                    tag_manager,
+                    logger,
+                    timer,
+                    id,
+                    val,
+                    serializer,
+                    default,
                 )
                 for id, val in raw_objects.items()
             }

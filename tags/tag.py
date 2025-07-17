@@ -4,6 +4,7 @@ from simpy import Environment
 
 from tags.state_machine import TagMachine, TimerScheduler
 from util.types import Position
+from manager.tag_manager import TagManager
 
 
 class TagMode:
@@ -113,6 +114,7 @@ class Tag(PhysicsObject):
     def __init__(
         self,
         env: Environment,
+        tag_manager: TagManager,
         name: str,
         tag_machine: TagMachine,
         mode: TagMode,
@@ -124,6 +126,7 @@ class Tag(PhysicsObject):
         reflection_coefficients: List[float],
     ):
         super().__init__(env, name, pos, power, gain, impedance, frequency)
+        self.tag_manager = tag_manager
         self.tag_machine = tag_machine
         self.mode = mode
         self.reflection_coefficients = reflection_coefficients
@@ -152,7 +155,7 @@ class Tag(PhysicsObject):
         return self.reflection_coefficients[self.get_mode().get_reflection_index()]
 
     def read_voltage(self) -> float:
-        pass
+        return self.tag_manager.get_received_voltage(self)
 
     def to_dict(self):
         """For placing tags into dicts correctly on JSON"""
@@ -167,6 +170,7 @@ class Tag(PhysicsObject):
     def from_dict(
         cls,
         env: Environment,
+        tag_manager: TagManager,
         logger,
         timer: TimerScheduler,
         name: str,
@@ -188,6 +192,7 @@ class Tag(PhysicsObject):
         )
         tag = cls(
             env,
+            tag_manager,
             name,
             tag_machine,
             TagMode.LISTENING,
