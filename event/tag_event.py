@@ -1,7 +1,7 @@
 from typing import List
 from event.base_event import Event, EventArgs
 from manager.tag_manager import TagManager
-from placeholder.tag import Tag, TagMode
+from tags.tag import Tag, TagMode
 
 
 class TagEvent(Event):

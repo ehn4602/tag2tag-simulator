@@ -135,6 +135,7 @@ class Tag(PhysicsObject):
         """
         Run this tag as a simpy
         """
+        self.tag_machine.prepare()
 
     def set_mode(self, tag_mode: TagMode):
         self.mode = tag_mode
@@ -168,7 +169,6 @@ class Tag(PhysicsObject):
         cls,
         env: Environment,
         logger,
-        timer: TimerScheduler,
         name: str,
         data: dict,
         serializer,
@@ -184,7 +184,7 @@ class Tag(PhysicsObject):
             tag: returns tag loaded from JSON
         """
         tag_machine = TagMachine.from_dict(
-            timer, logger, data["tag_machine"], serializer
+            env, logger, data["tag_machine"], serializer
         )
         tag = cls(
             env,

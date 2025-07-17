@@ -10,6 +10,7 @@ from logging.handlers import QueueHandler, QueueListener
 from pathlib import Path
 from typing import Optional
 
+from manager.run_program import run_program
 from tags.tag import *
 from tags.state_machine import *
 from event.base_event import *
@@ -33,7 +34,7 @@ DEFAULT_STATS = {
 def load_json(
     file_input: str,
     serializer: StateSerializer,
-    timer: Optional[TimerScheduler] = None,
+    # timer: Optional[TimerScheduler] = None,
     logger: Optional[logging.Logger] = None,
     environment: Optional[Environment] = None,
     default: Optional[dict] = None,
@@ -78,7 +79,7 @@ def load_json(
                 exciter = default_exciter
             tags = {
                 id: Tag.from_dict(
-                    environment, logger, timer, id, val, serializer, default
+                    environment, logger, id, val, serializer, default
                 )
                 for id, val in raw_objects.items()
             }
@@ -300,8 +301,6 @@ def load_txt(
         objects,events,default: information about the simulation configuration
     """
 
-    timer = None  # Placeholder, remove later
-
     default = DEFAULT_STATS
     events = []
     objects = {}
@@ -330,7 +329,7 @@ def load_txt(
                     init_states.append(
                         serializer.get_state(default.get("output_machine_id"))
                     )
-                    tagmachine = TagMachine(init_states, timer, logger)
+                    tagmachine = TagMachine(environment, init_states, logger)
                     tag = Tag(
                         environment,
                         info[1],
@@ -433,19 +432,17 @@ def init_logger(
 
 
 def main():
+    environment: Environment = Environment()
 
     serializer = StateSerializer()
 
-    # Temp
-    environment = Environment(0)
-    timer = "Temp"  # Remove later when timer/schedule is placed inside tags constructor
     ## TODO give tags their approriate tagmodes
 
     logger, q_listener = init_logger(logging.INFO)
     load_json(STATE_PATH, serializer)
 
     main_exciter, objects, events, default = load_json(
-        CONFIG_PATH, serializer, timer=timer, logger=logger
+        CONFIG_PATH, serializer, environment=environment, logger=logger
     )
 
     _, _, events, _ = load_json(EVENT_PATH, serializer)
@@ -455,6 +452,7 @@ def main():
         "proccessing_machine_id",
         "output_machine_id",
     ]
+    # "UNKNOWN" typo?
     machine_defined = not any(default[k] == "UNKOWN" for k in machine_id_keys)
     args = parse_args()
 
@@ -517,9 +515,9 @@ def main():
                 serializer.get_state(default.get("proccessing_machine_id"))
             )
             init_states.append(serializer.get_state(default.get("output_machine_id")))
-            tagmachine = TagMachine(init_states, timer, logger)
+            tagmachine = TagMachine(environment, init_states, logger)
             new_obj = Tag(
-                Environment,
+                environment,
                 id,
                 tagmachine,
                 "Listen",
@@ -587,6 +585,8 @@ def main():
         events.insert(position, new_event)
     save_config(main_exciter, objects, events, default, serializer)
     q_listener.stop()
+
+    run_program(environment, main_exciter, objects, events, default)
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from tag import Exciter, Tag
+from tags.tag import Exciter, Tag
 
 import physics
 
@@ -36,7 +36,7 @@ class TagManager:
             self.tags.pop(name)
 
     def get_by_name(self, name: str) -> Tag:
-        tag = self.named_tags[name]
+        tag = self.tags[name]
         if tag is None:
             raise ValueError(f"{name}: Tag by this name does not exist!")
         return tag
