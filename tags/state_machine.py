@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import List, Optional, Self, Dict, Any, TYPE_CHECKING, Tuple
 from abc import ABC, abstractmethod
+import logging
 from logging import Logger
 import heapq
 
@@ -238,7 +239,7 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
         # TODO: Convert to debug logging
         tag_name = self.tag_machine.tag.get_name()
         arguments = ",".join([str(arg) for arg in cmd_rest])
-        print(f"{tag_name}.{method_name}({arguments})")
+        logging.info(f"[{tag_name}] {method_name}({arguments})")
 
         getattr(self, method_name)(*cmd_rest)
 
@@ -322,6 +323,7 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
             self.transition_queue = [symbol]
         else:
             self.transition_queue.append(symbol)
+            return
         while len(self.transition_queue) != 0:
             symbol = self.transition_queue[0]
             self.transition_queue = self.transition_queue[1:]
