@@ -12,7 +12,7 @@ def load_events() -> List[EventArgs]:
         List[EventArgs]: The sorted EventArgs used for dispatching events
     """
     with open("config/events.json") as file:
-        events: List = json.load(file)
+        events: List = json.load(file)["Events"]
         events: List[EventArgs] = [EventArgs(**event) for event in events]
         # TODO sort by event.delay and then event.hash() or something
 

@@ -8,11 +8,7 @@
         "input_machine_id": "A",
         "proccessing_machine_id": "A",
         "output_machine_id": "B",
-        "reflection_coefficients": [
-            0,
-            0,
-            1
-        ]
+        "reflection_coefficients": [0, 0, 1]
     },
     "Exciter": {
         "id": "default",

@@ -225,6 +225,9 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
         self.transition_queue = None
         self.registers = [0 for _ in range(8)]
 
+    def _cmd(self, cmd_first:str, cmd_rest):
+        getattr(self, "_cmd_" + cmd_first)(*cmd_rest)
+
     def _cmd_mov(self, dst, src):
         """
         Performs dst := src
@@ -277,13 +280,13 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
             sym = "gt"
         self._accept_symbol(sym)
 
-    def _cmd__comment(self):
+    def _cmd__comment(self, *comment_lines: str):
         pass
 
     def _cmd_sequence(self, *cmd_list):
         for cmd in cmd_list:
             (cmd_first, *cmd_rest) = cmd
-            getattr(self, "_cmd_" + cmd_first)(self, *cmd_rest)
+            self._cmd(cmd_first, cmd_rest)
 
     def _cmd_self_trigger(self, symbol):
         self._accept_symbol(symbol)
@@ -302,16 +305,20 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
         Dispatches symbol reception events to _cmd_* methods
         """
         if self.transition_queue is None:
-            self.transiton_queue = [symbol]
+            self.transition_queue = [symbol]
         else:
             self.transition_queue.append(symbol)
         while len(self.transition_queue) != 0:
             symbol = self.transition_queue[0]
             self.transition_queue = self.transition_queue[1:]
+            # TODO: debug statements
+            print(f"transition_queue: {self.transition_queue}")
             cmd = self.transition(symbol)
+            print(f"transition_queue: {self.transition_queue}")
             if cmd is not None:
                 (cmd_first, *cmd_rest) = cmd
-                getattr(self, "_cmd_" + cmd_first)(self, *cmd_rest)
+                self._cmd(cmd_first, cmd_rest)
+            print(f"transition_queue: {self.transition_queue}")
         self.transition_queue = None
 
 
@@ -391,11 +398,11 @@ class OutputMachine(ExecuteMachine, TimerAcceptor):
 class TagMachine:
     def __init__(
         self,
+        env: Environment,
         init_states: tuple[State, State, State],
-        timer: TimerScheduler,
         logger: Logger,
     ):
-        self.timer = timer
+        self.timer = TimerScheduler(env)
         self.input_machine = InputMachine(self, init_states[0])
         self.processing_machine = ProcessingMachine(self, init_states[1])
         self.output_machine = OutputMachine(self, init_states[2])
@@ -418,14 +425,13 @@ class TagMachine:
         }
 
     @classmethod
-    def from_dict(cls, timer: TimerScheduler, logger, data, serializer):
-
+    def from_dict(cls, env: Environment, logger, data, serializer):
         return cls(
+            env,
             (
                 State.from_dict(data["input_machine"], serializer),
                 State.from_dict(data["processing_machine"], serializer),
                 State.from_dict(data["output_machine"], serializer),
             ),
-            timer,
             logger,
         )

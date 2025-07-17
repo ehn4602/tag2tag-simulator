@@ -2,9 +2,8 @@ from typing import List
 
 from simpy import Environment
 
-from tags.state_machine import TagMachine, TimerScheduler
+from tags.state_machine import TagMachine
 from util.types import Position
-from manager.tag_manager import TagManager
 
 
 class TagMode:
@@ -52,6 +51,8 @@ class PhysicsObject:
         return self.name
 
     def get_position(self):
+        # TODO: Do this in constructor later
+        self.pos = [float(p) for p in self.pos]
         return self.pos
 
     def get_power(self):
@@ -114,7 +115,6 @@ class Tag(PhysicsObject):
     def __init__(
         self,
         env: Environment,
-        tag_manager: TagManager,
         name: str,
         tag_machine: TagMachine,
         mode: TagMode,
@@ -126,7 +126,6 @@ class Tag(PhysicsObject):
         reflection_coefficients: List[float],
     ):
         super().__init__(env, name, pos, power, gain, impedance, frequency)
-        self.tag_manager = tag_manager
         self.tag_machine = tag_machine
         self.mode = mode
         self.reflection_coefficients = reflection_coefficients
@@ -138,6 +137,7 @@ class Tag(PhysicsObject):
         """
         Run this tag as a simpy
         """
+        self.tag_machine.prepare()
 
     def set_mode(self, tag_mode: TagMode):
         self.mode = tag_mode
@@ -155,7 +155,9 @@ class Tag(PhysicsObject):
         return self.reflection_coefficients[self.get_mode().get_reflection_index()]
 
     def read_voltage(self) -> float:
-        return self.tag_manager.get_received_voltage(self)
+        # TODO: temporary to get reference
+        from manager.tag_manager import TagManager
+        return TagManager.tag_manager.get_received_voltage(self)
 
     def to_dict(self):
         """For placing tags into dicts correctly on JSON"""
@@ -170,9 +172,7 @@ class Tag(PhysicsObject):
     def from_dict(
         cls,
         env: Environment,
-        tag_manager: TagManager,
         logger,
-        timer: TimerScheduler,
         name: str,
         data: dict,
         serializer,
@@ -188,11 +188,10 @@ class Tag(PhysicsObject):
             tag: returns tag loaded from JSON
         """
         tag_machine = TagMachine.from_dict(
-            timer, logger, data["tag_machine"], serializer
+            env, logger, data["tag_machine"], serializer
         )
         tag = cls(
             env,
-            tag_manager,
             name,
             tag_machine,
             TagMode.LISTENING,
