@@ -308,6 +308,7 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
             self.transition_queue = [symbol]
         else:
             self.transition_queue.append(symbol)
+            return
         while len(self.transition_queue) != 0:
             symbol = self.transition_queue[0]
             self.transition_queue = self.transition_queue[1:]
