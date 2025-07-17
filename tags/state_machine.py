@@ -14,16 +14,6 @@ from state import AppState
 if TYPE_CHECKING:
     from tags.tag import Tag
 
-import physics
-
-
-class PhysicsInterface:
-    def __init__(self, engine: physics.PhysicsEngine):
-        self.engine = engine
-
-    def get_voltage(self) -> float:
-        pass
-
 
 class Timer:
     def __init__(self, timer_acceptor: "TimerAcceptor", next_run: SimTime):
@@ -67,10 +57,8 @@ class TimerScheduler:
                 heapq.heappop(self.timers)
             delay: SimTime
             if len(self.timers) == 0:
-                # absurdly large value
-                # TODO: check if this can be inf
-                delay = float("inf")
                 self.next_run = None
+                delay = float("inf")
             else:
                 self.next_run = self.timers[0].get_next_run()
                 delay = self.next_run - self.app_state.now()
@@ -107,6 +95,7 @@ class TimerAcceptor(ABC):
         if delay != 0:
             self._last_timer = self._scheduler.set_timer(self, delay)
         # TODO: what about if delay is zero?
+        # TODO: What about if delay is zero?
 
     @abstractmethod
     def on_timer(self):
@@ -231,7 +220,7 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
         super().__init__(init_state)
         self.tag_machine = tag_machine
         self.transition_queue: Optional[List[str]] = None
-        self.registers:  List[int | float] = [0 for _ in range(8)]
+        self.registers: List[int | float] = [0 for _ in range(8)]
 
     def _cmd(self, cmd_first: str, cmd_rest: List):
         method_name = "_cmd_" + cmd_first
@@ -327,7 +316,6 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
         while len(self.transition_queue) != 0:
             symbol = self.transition_queue[0]
             self.transition_queue = self.transition_queue[1:]
-            # TODO: debug statements
             cmd = self.transition(symbol)
             if cmd is not None:
                 (cmd_first, *cmd_rest) = cmd

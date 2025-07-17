@@ -40,7 +40,7 @@ class PhysicsObject:
     ):
         self.app_state = app_state
         self.name = name
-        self.pos = pos
+        self.pos = tuple([float(p) for p in pos])
         self.power = power
         self.gain = gain
         self.impedance = impedance
@@ -49,9 +49,7 @@ class PhysicsObject:
     def get_name(self):
         return self.name
 
-    def get_position(self):
-        # TODO: Do this in constructor later
-        self.pos = [float(p) for p in self.pos]
+    def get_position(self) -> Position:
         return self.pos
 
     def get_power(self):
@@ -151,7 +149,8 @@ class Tag(PhysicsObject):
         return self.mode
 
     def get_reflection_coefficient(self):
-        return self.reflection_coefficients[self.get_mode().get_reflection_index()]
+        index = self.get_mode().get_reflection_index()
+        return self.reflection_coefficients[index]
 
     def read_voltage(self) -> float:
         tag_manager = self.app_state.tag_manager

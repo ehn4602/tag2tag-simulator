@@ -1,5 +1,6 @@
 import argparse
 import bisect
+from datetime import datetime
 import heapq
 import json
 import logging
@@ -417,7 +418,12 @@ def init_logger(
 
     block_handlers = []
 
-    fhandle = logging.FileHandler(filename)
+    directory = "logs"
+    filename = os.path.join(directory, filename)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    time_format = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+    fhandle = logging.FileHandler(f"{filename}-{time_format}")
     block_handlers.append(fhandle)
 
     if stdout:
