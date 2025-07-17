@@ -1,9 +1,12 @@
+from __future__ import annotations
 from math import sqrt
+from typing import TYPE_CHECKING
 
 import scipy.spatial as dist
 from scipy.constants import c, e, pi
 
-from tags.tag import Exciter, Positionable, Tag
+if TYPE_CHECKING:
+    from tags.tag import Exciter, Positionable, Tag
 
 
 class PhysicsEngine:
@@ -104,7 +107,9 @@ class PhysicsEngine:
 
         # Calculate the signal from tx to rx
         sig_tx_rx = (
-            sig_ex_tx * tx_refcoef * self.get_sig_tx_rx(tx, rx)
+            sig_ex_tx
+            * tx_refcoef
+            * self.get_sig_tx_rx(tx, rx)
             # * self.attenuation(d_tx_rx, tx_wavelen, 1.0, 1.0)
             # * (e ** (i2pi * d_tx_rx / tx_wavelen))
         )
