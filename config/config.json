@@ -15,85 +15,25 @@
         "z": "10"
     },
     "Objects": {
-        "mercury": {
+        "Sender": {
             "tag_machine": {
-                "input_machine": "A",
-                "processing_machine": "A",
-                "output_machine": "B"
+                "input_machine": "EMPTY",
+                "processing_machine": "sender_processing_0",
+                "output_machine": "sender_output_0"
             },
             "x": "2",
             "y": "2",
             "z": "2"
         },
-        "venus": {
+        "Receiver": {
             "tag_machine": {
-                "input_machine": "A",
-                "processing_machine": "A",
-                "output_machine": "B"
+                "input_machine": "receiver_input_0",
+                "processing_machine": "receiver_processing_0",
+                "output_machine": "receiver_output_0"
             },
             "x": "0",
             "y": "8",
             "z": "3"
-        },
-        "earth": {
-            "tag_machine": {
-                "input_machine": "A",
-                "processing_machine": "A",
-                "output_machine": "B"
-            },
-            "x": "5",
-            "y": "3",
-            "z": "5"
-        },
-        "mars": {
-            "tag_machine": {
-                "input_machine": "A",
-                "processing_machine": "A",
-                "output_machine": "B"
-            },
-            "x": "7",
-            "y": "1",
-            "z": "2"
-        },
-        "jupiter": {
-            "tag_machine": {
-                "input_machine": "A",
-                "processing_machine": "A",
-                "output_machine": "B"
-            },
-            "x": "3",
-            "y": "3",
-            "z": "3"
-        },
-        "saturn": {
-            "tag_machine": {
-                "input_machine": "A",
-                "processing_machine": "A",
-                "output_machine": "B"
-            },
-            "x": "7",
-            "y": "8",
-            "z": "1"
-        },
-        "uranus": {
-            "tag_machine": {
-                "input_machine": "A",
-                "processing_machine": "A",
-                "output_machine": "B"
-            },
-            "x": "0",
-            "y": "2",
-            "z": "4"
-        },
-        "neptune": {
-            "tag_machine": {
-                "input_machine": "A",
-                "processing_machine": "A",
-                "output_machine": "B"
-            },
-            "x": "15",
-            "y": "2",
-            "z": "6"
         }
     }
 }

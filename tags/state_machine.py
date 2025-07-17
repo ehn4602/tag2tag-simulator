@@ -127,29 +127,40 @@ class State:
     def get_name(self):
         return self.name
 
+    @classmethod
+    def _method_from_dict(cls, d):
+        if isinstance(d, list):
+            return tuple([cls._method_from_dict(x) for x in d])
+        else:
+            return d
+
+    @classmethod
+    def _method_to_dict(cls, method):
+        if isinstance(method, tuple):
+            return [cls._method_to_dict(x) for x in method]
+        else:
+            return method
+
     def to_dict(self):
         transitions_serialized = {}
         for expect_input, (method, state) in self.transitions.items():
-            if isinstance(method, tuple):
-                method_serialized = list(method)
-            else:
-                method_serialized = [method]
-
             transitions_serialized[expect_input] = [
-                method_serialized,
+                self._method_to_dict(method),
                 state.name,
             ]
         return {"id": self.name, "transitions": transitions_serialized}
 
     @classmethod
-    def from_dict(cls, data, serializer, id=None):
+    def from_dict(cls, data, serializer: StateSerializer, id=None):
         if isinstance(data, str):
             return serializer.get_state(data)
         id = data.get("id")
         state = serializer.get_state(id)
         for expect_input, (method, output_id) in data["transitions"].items():
             output_state = serializer.get_state(output_id)
-            state.add_transition(expect_input, tuple(method), output_state)
+            state.add_transition(
+                expect_input, cls._method_from_dict(method), output_state
+            )
         return state
 
 
@@ -185,12 +196,9 @@ class StateMachine:
     def transition(self, symbol):
         out = self.state.follow_symbol(symbol)
         if out is None:
-            return []
+            return None
         self.state = out[1]
-        if out[0][0] == "sequence":
-            return out[1]
-        else:
-            return [out[0]]
+        return out[0]
 
 
 class MachineLogger:
@@ -208,7 +216,7 @@ class MachineLogger:
         self.store += s
 
 
-class ExecuteMachine(StateMachine):
+class ExecuteMachine(StateMachine, TimerAcceptor):
     registers: List[int | float]
 
     def __init__(self, tag_machine: TagMachine, init_state: State):
@@ -216,12 +224,6 @@ class ExecuteMachine(StateMachine):
         self.tag_machine = tag_machine
         self.transition_queue = None
         self.registers = [0 for _ in range(8)]
-
-    def set_tag(self, tag: Tag):
-        """
-        Must be called after __init__ and before anything else
-        """
-        self.tag = tag
 
     def _cmd_mov(self, dst, src):
         """
@@ -241,11 +243,23 @@ class ExecuteMachine(StateMachine):
         """
         self.registers[dst] = self.registers[a] - self.registers[b]
 
+    def _cmd_add(self, dst, a, b):
+        """
+        Performs dst := a + b
+        """
+        self.registers[dst] = self.registers[a] + self.registers[b]
+
     def _cmd_floor(self, a):
         """
         Performs a := int(a)
         """
         self.registers[a] = int(self.registers[a])
+
+    def _cmd_abs(self, a):
+        """
+        Performs a := abs(a)
+        """
+        self.registers[a] = abs(self.registers[a])
 
     def _cmd_compare(self, a, b):
         """
@@ -263,6 +277,26 @@ class ExecuteMachine(StateMachine):
             sym = "gt"
         self._accept_symbol(sym)
 
+    def _cmd__comment(self):
+        pass
+
+    def _cmd_sequence(self, *cmd_list):
+        for cmd in cmd_list:
+            (cmd_first, *cmd_rest) = cmd
+            self["_cmd_" + cmd_first](*cmd_rest)
+
+    def _cmd_self_trigger(self, symbol):
+        self._accept_symbol(symbol)
+
+    def _cmd_set_timer(self, timer_reg):
+        self.tag_machine.timer.set_timer(self, self.registers[timer_reg])
+
+    def prepare(self):
+        self._accept_symbol("init")
+
+    def on_timer(self):
+        self._accept_symbol("on_timer")
+
     def _accept_symbol(self, symbol):
         """
         Dispatches symbol reception events to _cmd_* methods
@@ -274,44 +308,34 @@ class ExecuteMachine(StateMachine):
         while len(self.transition_queue) != 0:
             symbol = self.transition_queue[0]
             self.transition_queue = self.transition_queue[1:]
-            for cmd in self.transition(symbol):
+            cmd = self.transition(symbol)
+            if cmd is not None:
                 (cmd_first, *cmd_rest) = cmd
                 self["_cmd_" + cmd_first](*cmd_rest)
         self.transition_queue = None
 
 
-class InputMachine(ExecuteMachine, TimerAcceptor):
+class InputMachine(ExecuteMachine):
     def __init__(self, tag_machine: TagMachine, init_state: State):
         super().__init__(tag_machine, init_state)
 
-    def _cmd_set_timer(self, timer_reg):
-        self.tag_machine.timer.set_timer(self, self.registers[timer_reg])
-        self.tag_machine.timer.set_timer(self, self.registers[timer_reg])
-
     def _cmd_save_voltage(self, out_reg):
-        self.registers[out_reg] = self.tag_machine.tag.read_voltage()
         self.registers[out_reg] = self.tag_machine.tag.read_voltage()
 
     def _cmd_send_bit(self, reg):
-        self.tag_machine.processing_machine.on_recv_bit(self.registers[reg])
-        self.tag_machine.processing_machine.on_recv_bit(self.registers[reg])
+        self.tag_machine.processing_machine.on_recv_bit(self.registers[reg] != 0)
 
     def _cmd_forward_voltage(self):
         self.tag_machine.processing_machine.on_recv_voltage(
             self.tag_machine.tag.read_voltage()
         )
 
-    def prepare(self):
-        self._accept_symbol("init")
-
-    def on_timer(self):
-        self._accept_symbol("on_timer")
-
 
 class ProcessingMachine(ExecuteMachine):
     def __init__(self, tag_machine: TagMachine, init_state: State):
         super().__init__(tag_machine, init_state)
         self.tag_machine = tag_machine
+        self.mem = [0 for _ in range(64)]
 
     def on_recv_bit(self, val: bool):
         self.registers[7] = val and 1 or 0
@@ -321,35 +345,47 @@ class ProcessingMachine(ExecuteMachine):
         self.registers[7] = val
         self._accept_symbol("on_recv_voltage")
 
+    def on_queue_up(self):
+        self._accept_symbol("on_queue_up")
+
     def _cmd_send_int_out(self, reg):
-        self.tag_machine.output_machine.on_recv_int(self.registers[reg])
         self.tag_machine.output_machine.on_recv_int(self.registers[reg])
 
     def _cmd_send_int_log(self, reg):
         self.tag_machine.logger.log(str(self.registers[reg]))
-        self.tag_machine.logger.log(str(self.registers[reg]))
+
+    def _cmd_store_mem_imm(self, reg_addr, imm):
+        if isinstance(imm, tuple):
+            imm = list(imm)
+        else:
+            imm = [imm]
+        base_idx = self.registers[reg_addr]
+        for idx in range(len(imm)):
+            self.mem[base_idx + idx] = imm[idx]
+
+    def _cmd_load_mem(self, dst, addr_reg):
+        self.registers[dst] = self.mem[self.registers[addr_reg]]
 
 
 class OutputMachine(ExecuteMachine, TimerAcceptor):
     def __init__(self, tag_machine: TagMachine, init_state: State):
         super().__init__(tag_machine, init_state)
 
-    def _cmd_set_antenna(self, n: int):
-        self.tag_machine.tag.set_mode_reflect(n)
+    def _cmd_set_antenna(self, reg):
+        self.tag_machine.tag.set_mode_reflect(self.registers[reg])
 
     def _cmd_set_listen(self):
         self.tag_machine.tag.set_mode_listen()
 
     def _cmd_set_timer(self, time):
         self.tag_machine.timer.set_timer(self, time)
-        self.tag_machine.timer.set_timer(self, time)
+
+    def _cmd_queue_processing(self):
+        self.tag_machine.processing_machine.on_queue_up()
 
     def on_recv_int(self, n: int):
         self.registers[7] = n
         self._accept_symbol("on_recv_int")
-
-    def on_timer(self):
-        self._accept_symbol("on_timer")
 
 
 class TagMachine:
@@ -367,10 +403,12 @@ class TagMachine:
 
     def set_tag(self, tag: Tag):
         self.tag = tag
-        self.tag = tag
 
     def prepare(self):
+        # can set antenna settings before everything else
+        self.output_machine.prepare()
         self.input_machine.prepare()
+        self.processing_machine.prepare()
 
     def to_dict(self):
         return {
