@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict
 
 from tags.tag import Exciter, Tag
 
@@ -11,11 +11,9 @@ if TYPE_CHECKING:
 
 
 class TagManager:
-    # TODO: convert from static field
-    tag_manager: TagManager
 
-    def __init__(self, exciter: Exciter, tags=dict()):
-        self.tags = tags
+    def __init__(self, exciter: Exciter, tags: Dict[str, Tag] = dict()):
+        self.tags: Dict[str, Tag] = tags
         self.physics_engine = physics.PhysicsEngine(exciter)
 
     def add_tags(self, *tags: Tag) -> None:
@@ -45,6 +43,6 @@ class TagManager:
         return tag
 
     def get_received_voltage(self, asking_tag: Tag):
-        # very simple mockup for now
+        # TODO: very simple mockup for now
 
         return self.physics_engine.voltage_at_tag(self.tags, asking_tag)

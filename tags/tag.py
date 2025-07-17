@@ -1,7 +1,6 @@
 from typing import List
 
-from simpy import Environment
-
+from state import AppState
 from tags.state_machine import TagMachine
 from util.types import Position
 
@@ -31,7 +30,7 @@ class PhysicsObject:
 
     def __init__(
         self,
-        env: Environment,
+        app_state: AppState,
         name: str,
         pos: Position,
         power: float,
@@ -39,7 +38,7 @@ class PhysicsObject:
         impedance: float,
         frequency: float,
     ):
-        self.env = env
+        self.app_state = app_state
         self.name = name
         self.pos = pos
         self.power = power
@@ -73,7 +72,7 @@ class Exciter(PhysicsObject):
 
     def __init__(
         self,
-        env: Environment,
+        app_state: AppState,
         name: str,
         pos: Position,
         power: float,
@@ -81,7 +80,7 @@ class Exciter(PhysicsObject):
         impedance: float,
         frequency: float,
     ):
-        super().__init__(env, name, pos, power, gain, impedance, frequency)
+        super().__init__(app_state, name, pos, power, gain, impedance, frequency)
 
     def to_dict(self):
         """For placing exciters from dicts correctly to JSON"""
@@ -97,9 +96,9 @@ class Exciter(PhysicsObject):
         }
 
     @classmethod
-    def from_dict(cls, environment, data):
+    def from_dict(cls, app_state: AppState, data):
         return Exciter(
-            environment,
+            app_state,
             data["id"],
             (data["x"], data["y"], data["z"]),
             data["power"],
@@ -114,7 +113,7 @@ class Tag(PhysicsObject):
 
     def __init__(
         self,
-        env: Environment,
+        app_state: AppState,
         name: str,
         tag_machine: TagMachine,
         mode: TagMode,
@@ -125,7 +124,7 @@ class Tag(PhysicsObject):
         frequency: float,
         reflection_coefficients: List[float],
     ):
-        super().__init__(env, name, pos, power, gain, impedance, frequency)
+        super().__init__(app_state, name, pos, power, gain, impedance, frequency)
         self.tag_machine = tag_machine
         self.mode = mode
         self.reflection_coefficients = reflection_coefficients
@@ -135,7 +134,7 @@ class Tag(PhysicsObject):
 
     def run(self):
         """
-        Run this tag as a simpy
+        Run this tag with simpy
         """
         self.tag_machine.prepare()
 
@@ -155,9 +154,8 @@ class Tag(PhysicsObject):
         return self.reflection_coefficients[self.get_mode().get_reflection_index()]
 
     def read_voltage(self) -> float:
-        # TODO: temporary to get reference
-        from manager.tag_manager import TagManager
-        return TagManager.tag_manager.get_received_voltage(self)
+        tag_manager = self.app_state.tag_manager
+        return tag_manager.get_received_voltage(self)
 
     def to_dict(self):
         """For placing tags into dicts correctly on JSON"""
@@ -171,7 +169,7 @@ class Tag(PhysicsObject):
     @classmethod
     def from_dict(
         cls,
-        env: Environment,
+        app_state: AppState,
         logger,
         name: str,
         data: dict,
@@ -188,10 +186,10 @@ class Tag(PhysicsObject):
             tag: returns tag loaded from JSON
         """
         tag_machine = TagMachine.from_dict(
-            env, logger, data["tag_machine"], serializer
+            app_state, logger, data["tag_machine"], serializer
         )
         tag = cls(
-            env,
+            app_state,
             name,
             tag_machine,
             TagMode.LISTENING,

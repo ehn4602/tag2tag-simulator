@@ -36,7 +36,7 @@ def load_json(
     serializer: StateSerializer,
     # timer: Optional[TimerScheduler] = None,
     logger: Optional[logging.Logger] = None,
-    environment: Optional[Environment] = None,
+    app_state: Optional[AppState] = None,
     default: Optional[dict] = None,
 ):
     """Loads config file, gaining information it needs to run
@@ -46,7 +46,7 @@ def load_json(
     """
 
     default_exciter = Exciter(
-        environment,
+        app_state,
         "default",
         (0, 0, 0),
         DEFAULT_STATS["exciter_power"],
@@ -74,11 +74,11 @@ def load_json(
 
             default = raw_data.get("Default")
             if raw_data.get("Exciter") != "UNDEFINED":
-                exciter = Exciter.from_dict(environment, raw_data.get("Exciter"))
+                exciter = Exciter.from_dict(app_state, raw_data.get("Exciter"))
             else:
                 exciter = default_exciter
             tags = {
-                id: Tag.from_dict(environment, logger, id, val, serializer, default)
+                id: Tag.from_dict(app_state, logger, id, val, serializer, default)
                 for id, val in raw_objects.items()
             }
             return exciter, tags, None, default
@@ -287,9 +287,9 @@ def load_states(data: dict, serializer: StateSerializer, default: dict):
 
 def load_txt(
     filepath: str,
-    environment: Environment,
+    app_state: AppState,
     serializer: StateSerializer,
-    logger: logging,
+    logger: logging.Logger,
 ):
     """Loads arguments via a text file. Format is the same as arguments
     Args:
@@ -327,9 +327,9 @@ def load_txt(
                     init_states.append(
                         serializer.get_state(default.get("output_machine_id"))
                     )
-                    tagmachine = TagMachine(environment, init_states, logger)
+                    tagmachine = TagMachine(app_state, init_states, logger)
                     tag = Tag(
-                        environment,
+                        app_state,
                         info[1],
                         tagmachine,
                         "Listen",
@@ -343,7 +343,7 @@ def load_txt(
                     objects[info[1]] = tag
                 elif info[0] == "exciter":
                     exciter = Exciter(
-                        environment,
+                        app_state,
                         "default",
                         info[1:4],
                         default["exciter_power"],
@@ -430,7 +430,7 @@ def init_logger(
 
 
 def main():
-    environment: Environment = Environment()
+    app_state: AppState = AppState()
 
     serializer = StateSerializer()
 
@@ -440,7 +440,7 @@ def main():
     load_json(STATE_PATH, serializer)
 
     main_exciter, objects, events, default = load_json(
-        CONFIG_PATH, serializer, environment=environment, logger=logger
+        CONFIG_PATH, serializer, app_state=app_state, logger=logger
     )
 
     _, _, events, _ = load_json(EVENT_PATH, serializer)
@@ -462,14 +462,14 @@ def main():
         if file_type == "txt":
             if args.add:  # appends loaded arguments instead of overwrite
                 temp_exciter, add_objects, add_events, add_default = load_txt(
-                    args.load, environment, serializer, logger
+                    args.load, app_state, serializer, logger
                 )
                 objects.update(add_objects)
                 default.update(add_default)
                 events = list(heapq.merge(events, add_events, key=lambda x: x[0]))
             else:  # overwrites previouse saved data
                 temp_exciter, objects, events, default = load_txt(
-                    args.load, environment, serializer, logger
+                    args.load, app_state, serializer, logger
                 )
             if temp_exciter is not None:
                 main_exciter = temp_exciter
@@ -489,7 +489,7 @@ def main():
     if args.exciter:
         x, y, z = args.exciter[0:3]
         main_exciter = Exciter(
-            environment,
+            app_state,
             "default",
             (x, y, z),
             default["exciter_power"],
@@ -513,9 +513,9 @@ def main():
                 serializer.get_state(default.get("proccessing_machine_id"))
             )
             init_states.append(serializer.get_state(default.get("output_machine_id")))
-            tagmachine = TagMachine(environment, init_states, logger)
+            tagmachine = TagMachine(app_state, init_states, logger)
             new_obj = Tag(
-                environment,
+                app_state,
                 id,
                 tagmachine,
                 "Listen",
@@ -584,7 +584,7 @@ def main():
     save_config(main_exciter, objects, events, default, serializer)
     q_listener.stop()
 
-    run_program(environment, main_exciter, objects, events, default)
+    run_program(app_state, main_exciter, objects, events, default)
 
 
 if __name__ == "__main__":

@@ -1,16 +1,31 @@
 from typing import Dict
-from simpy import Environment
 
 from manager.application_layer import application_layer
 from manager.tag_manager import TagManager
-from tags.tag import Tag
+from state import AppState
+from tags.tag import Exciter, Tag
 
 
-def run_program(env: Environment, main_exciter, tags: Dict[str, Tag], events, default):
-    # TODO: make this an instance field rather than static 
-    TagManager.tag_manager = TagManager(main_exciter, tags=tags)
+def run_program(
+    app_state: AppState,
+    main_exciter: Exciter,
+    tags: Dict[str, Tag],
+    events,
+    default,
+):
+    # TODO: make this an instance field rather than static
+    app_state.set_tag_manager(TagManager(main_exciter, tags=tags))
+    env = app_state.env
 
-    env.process(application_layer(env))
+    # def test_inf_timeout():
+    #     print("Setup for delayed inf timeout test")
+    #     yield env.timeout(1)
+    #     print("Waiting forever")
+    #     yield env.timeout(float("inf"))
+    #     print("Forever passed")
+
+    # env.process(test_inf_timeout())
+    # env.process(application_layer(env))
     for tag in tags.values():
         tag.run()
 
