@@ -226,7 +226,6 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
         self.registers = [0 for _ in range(8)]
 
     def _cmd(self, cmd_first:str, cmd_rest):
-        print(f"{cmd_first}({','.join([f"'{arg}'" for arg in cmd_rest])})")
         getattr(self, "_cmd_" + cmd_first)(*cmd_rest)
 
     def _cmd_mov(self, dst, src):
@@ -281,8 +280,8 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
             sym = "gt"
         self._accept_symbol(sym)
 
-    def _cmd__comment(self, msg: str):
-        print(msg)
+    def _cmd__comment(self, *comment_lines: str):
+        pass
 
     def _cmd_sequence(self, *cmd_list):
         for cmd in cmd_list:
@@ -312,10 +311,14 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
         while len(self.transition_queue) != 0:
             symbol = self.transition_queue[0]
             self.transition_queue = self.transition_queue[1:]
+            # TODO: debug statements
+            print(f"transition_queue: {self.transition_queue}")
             cmd = self.transition(symbol)
+            print(f"transition_queue: {self.transition_queue}")
             if cmd is not None:
                 (cmd_first, *cmd_rest) = cmd
                 self._cmd(cmd_first, cmd_rest)
+            print(f"transition_queue: {self.transition_queue}")
         self.transition_queue = None
 
 

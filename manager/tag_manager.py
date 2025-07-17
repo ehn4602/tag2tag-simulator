@@ -11,6 +11,9 @@ if TYPE_CHECKING:
 
 
 class TagManager:
+    # TODO: convert from static field
+    tag_manager: TagManager
+
     def __init__(self, exciter: Exciter, tags=dict()):
         self.tags = tags
         self.physics_engine = physics.PhysicsEngine(exciter)

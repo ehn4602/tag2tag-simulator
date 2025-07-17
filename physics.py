@@ -2,7 +2,7 @@ from __future__ import annotations
 from math import sqrt
 from typing import TYPE_CHECKING
 
-import scipy.spatial as dist
+import scipy.spatial.distance as dist
 from scipy.constants import c, e, pi
 
 if TYPE_CHECKING:
@@ -19,12 +19,12 @@ class PhysicsEngine:
         self.exciter = exciter
 
     def attenuation(
-        dist: float, wavelength: float, tx_directivity=1.0, rx_directivity=1.0
+        self, distance: float, wavelength: float, tx_directivity=1.0, rx_directivity=1.0
     ) -> float:
         """
         Helper function for calculating the attenuation between two antennas
         """
-        num = (4 * pi * dist) ** 2
+        num = (4 * pi * distance) ** 2
         den = tx_directivity * rx_directivity * (wavelength**2)
         return num / den
 
@@ -122,9 +122,11 @@ class PhysicsEngine:
         """
         Gets the signal from a tag or exciter to another tag
         """
-        d = dist.euclidean(tx.get_position(), rx.get_position())
+        distance = dist.euclidean(tx.get_position(), rx.get_position())
         wavelen = c / tx.get_frequency()
-        self.attenuation(dist, wavelen, 1.0, 1.0) * (e ** (1j * 2 * pi * d / wavelen))
+        return self.attenuation(distance, wavelen, 1.0, 1.0) * (
+            e ** (1j * 2 * pi * distance / wavelen)
+        )
 
     def voltage_at_tag(self, tags: dict[str, Tag], recieving_tag: Tag):
         """
@@ -139,7 +141,7 @@ class PhysicsEngine:
         sigs_to_rx = []
         sigs_to_rx.append(self.get_sig_tx_rx(ex, recieving_tag))
 
-        for tag in tags:
+        for tag in tags.values():
             tag_mode = tag.get_mode()
             if tag is not recieving_tag and not tag_mode.is_listening():
                 # Get all of the signals that are currently being sent to rx

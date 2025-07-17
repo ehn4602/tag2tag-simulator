@@ -7,11 +7,11 @@ from tags.tag import Tag
 
 
 def run_program(env: Environment, main_exciter, tags: Dict[str, Tag], events, default):
-    tag_manager = TagManager(main_exciter, tags=tags)
-    
+    # TODO: make this an instance field rather than static 
+    TagManager.tag_manager = TagManager(main_exciter, tags=tags)
+
     env.process(application_layer(env))
     for tag in tags.values():
         tag.run()
-    
 
     env.run(until=100000)

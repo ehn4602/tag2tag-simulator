@@ -2,7 +2,7 @@ from typing import List
 
 from simpy import Environment
 
-from tags.state_machine import TagMachine, TimerScheduler
+from tags.state_machine import TagMachine
 from util.types import Position
 
 
@@ -51,6 +51,8 @@ class PhysicsObject:
         return self.name
 
     def get_position(self):
+        # TODO: Do this in constructor later
+        self.pos = [float(p) for p in self.pos]
         return self.pos
 
     def get_power(self):
@@ -153,7 +155,9 @@ class Tag(PhysicsObject):
         return self.reflection_coefficients[self.get_mode().get_reflection_index()]
 
     def read_voltage(self) -> float:
-        pass
+        # TODO: temporary to get reference
+        from manager.tag_manager import TagManager
+        return TagManager.tag_manager.get_received_voltage(self)
 
     def to_dict(self):
         """For placing tags into dicts correctly on JSON"""
