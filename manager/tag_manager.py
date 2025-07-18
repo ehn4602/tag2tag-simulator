@@ -1,21 +1,48 @@
-from typing import Dict
+from __future__ import annotations
 
-from tags.tag import Tag
+from typing import TYPE_CHECKING, Dict
+
+from tags.tag import Exciter, Tag
+
+import physics
+
+if TYPE_CHECKING:
+    pass
 
 
 class TagManager:
-    tags: Dict[str, Tag] = dict()
 
-    def register(cls, *tags: Tag) -> None:
-        """Register a tag with the TagManager for any future references
+    def __init__(self, exciter: Exciter, tags: Dict[str, Tag] = dict()):
+        self.tags: Dict[str, Tag] = tags
+        self.physics_engine = physics.PhysicsEngine(exciter)
+
+    def add_tags(self, *tags: Tag) -> None:
+        """
+        Register one or more tags with the TagManager for any future references
 
         Args:
-            tag (Tag): The tag to register
+            tag (Tag) -- The tag to register
         """
         for tag in tags:
-            TagManager.tags[tag.name] = tag
+            self.tags[tag.name] = tag
 
-    def get_by_name(cls, name: str) -> Tag:
-        tag = TagManager.tags[name]
-        assert tag is not None
+    def remove_by_name(self, *names: str) -> None:
+        """
+        Remove one or more tags by name from the TagManager
+
+        Args:
+            names (str) -- The names to remove from the tags dictionary
+        """
+        for name in names:
+            self.tags.pop(name)
+
+    def get_by_name(self, name: str) -> Tag:
+        tag = self.tags[name]
+        if tag is None:
+            raise ValueError(f"{name}: Tag by this name does not exist!")
         return tag
+
+    def get_received_voltage(self, asking_tag: Tag):
+        # TODO: very simple mockup for now
+
+        return self.physics_engine.voltage_at_tag(self.tags, asking_tag)

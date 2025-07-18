@@ -1,10 +1,10 @@
-default resistive_load 10
+load ./examples/example_machine.json
+--default impedance 75
 default gain 0
 default exciter_power 50 # Comment example, same format as arguments
-exciter alpha 0 0 0 
-exciter beta 5 0 0
-exciter gamma 0 0 5
-exciter delta 5 0 5
+default proccessing A
+default output B
+exciter 10 -10 10 
 tag mercury 2 2 2
 tag venus 0 8 -3 
 tag earth 5 3 5
@@ -14,7 +14,8 @@ tag saturn 7 -8 1
 tag uranus 0 2 4
 tag neptune -15 -2 -6
 # events will be reordered by time
-event 00:00:01 neptune uranus mpp
-event 00:00:07 uranus neptune mpp
-event 00:05:02 jupiter mercury ping
-event 00:02:17 Mercury Earth ping
+event 123 neptune tag_set_mode
+event 234 uranus tag_set_mode --event_mode listen
+event 100 jupiter tag_set_mode --event_mode transmit --event_transmission 1010101
+
+
