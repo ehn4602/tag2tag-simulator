@@ -1,28 +1,22 @@
 from __future__ import annotations
 
-from typing import List, Optional, Self, Dict, Any, TYPE_CHECKING
+from typing import List, Optional, Self, Dict, Any, TYPE_CHECKING, Tuple
 from abc import ABC, abstractmethod
+import logging
 from logging import Logger
 import heapq
 
-from simpy import Environment, Interrupt
+from simpy.core import SimTime
+from simpy import Interrupt
+
+from state import AppState
 
 if TYPE_CHECKING:
     from tags.tag import Tag
 
-import physics
-
-
-class PhysicsInterface:
-    def __init__(self, engine: physics.PhysicsEngine):
-        self.engine = engine
-
-    def get_voltage(self) -> float:
-        pass
-
 
 class Timer:
-    def __init__(self, timer_acceptor: "TimerAcceptor", next_run: int):
+    def __init__(self, timer_acceptor: "TimerAcceptor", next_run: SimTime):
         self._timer_acceptor = timer_acceptor
         self._next_run = next_run
         self._is_canceled = False
@@ -47,27 +41,29 @@ class Timer:
 
 class TimerScheduler:
 
-    def __init__(self, env: Environment):
-        self.env: Environment = env
+    def __init__(self, app_state: AppState):
+        self.app_state: AppState = app_state
         self.timers: List[Timer] = []
         self.next_run: Optional[int] = None
-        self.process = self.env.process(self.run())
+        self.process = self.app_state.env.process(self.run())
 
     def run(self):
         while True:
-            if len(self.timers) != 0 and self.timers[0].get_next_run() <= self.env.now:
+            while (
+                len(self.timers) != 0
+                and self.timers[0].get_next_run() <= self.app_state.now()
+            ):
                 self.timers[0].run()
                 heapq.heappop(self.timers)
-            delay = None
+            delay: SimTime
             if len(self.timers) == 0:
-                # absurdly large value
-                delay = 1e6
                 self.next_run = None
+                delay = float("inf")
             else:
                 self.next_run = self.timers[0].get_next_run()
-                delay = self.next_run - self.env.now
+                delay = self.next_run - self.app_state.now()
             try:
-                yield self.env.timeout(delay)
+                yield self.app_state.env.timeout(delay)
             except Interrupt:
                 pass
 
@@ -76,7 +72,7 @@ class TimerScheduler:
         Schedules a timer event
         """
         assert delay >= 0
-        timer = Timer(timer_acceptor, self.env.now + delay)
+        timer = Timer(timer_acceptor, self.app_state.now_plus(delay))
         heapq.heappush(self.timers, timer)
         if self.next_run is None or self.timers[0].get_next_run() < self.next_run:
             self.process.interrupt()
@@ -98,6 +94,8 @@ class TimerAcceptor(ABC):
             self._last_timer = None
         if delay != 0:
             self._last_timer = self._scheduler.set_timer(self, delay)
+        # TODO: what about if delay is zero?
+        # TODO: What about if delay is zero?
 
     @abstractmethod
     def on_timer(self):
@@ -217,16 +215,22 @@ class MachineLogger:
 
 
 class ExecuteMachine(StateMachine, TimerAcceptor):
-    registers: List[int | float]
 
     def __init__(self, tag_machine: TagMachine, init_state: State):
         super().__init__(init_state)
         self.tag_machine = tag_machine
-        self.transition_queue = None
-        self.registers = [0 for _ in range(8)]
+        self.transition_queue: Optional[List[str]] = None
+        self.registers: List[int | float] = [0 for _ in range(8)]
 
-    def _cmd(self, cmd_first:str, cmd_rest):
-        getattr(self, "_cmd_" + cmd_first)(*cmd_rest)
+    def _cmd(self, cmd_first: str, cmd_rest: List):
+        method_name = "_cmd_" + cmd_first
+
+        # TODO: Convert to debug logging
+        tag_name = self.tag_machine.tag.get_name()
+        arguments = ",".join([str(arg) for arg in cmd_rest])
+        logging.info(f"[{tag_name}] {method_name}({arguments})")
+
+        getattr(self, method_name)(*cmd_rest)
 
     def _cmd_mov(self, dst, src):
         """
@@ -312,14 +316,10 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
         while len(self.transition_queue) != 0:
             symbol = self.transition_queue[0]
             self.transition_queue = self.transition_queue[1:]
-            # TODO: debug statements
-            print(f"transition_queue: {self.transition_queue}")
             cmd = self.transition(symbol)
-            print(f"transition_queue: {self.transition_queue}")
             if cmd is not None:
                 (cmd_first, *cmd_rest) = cmd
                 self._cmd(cmd_first, cmd_rest)
-            print(f"transition_queue: {self.transition_queue}")
         self.transition_queue = None
 
 
@@ -399,15 +399,16 @@ class OutputMachine(ExecuteMachine, TimerAcceptor):
 class TagMachine:
     def __init__(
         self,
-        env: Environment,
-        init_states: tuple[State, State, State],
+        app_state: AppState,
+        init_states: Tuple[State, State, State],
         logger: Logger,
     ):
-        self.timer = TimerScheduler(env)
+        self.timer = TimerScheduler(app_state)
+        self.logger = MachineLogger(logger)
         self.input_machine = InputMachine(self, init_states[0])
         self.processing_machine = ProcessingMachine(self, init_states[1])
         self.output_machine = OutputMachine(self, init_states[2])
-        self.logger = MachineLogger(logger)
+        self.tag: Tag
 
     def set_tag(self, tag: Tag):
         self.tag = tag
@@ -426,9 +427,9 @@ class TagMachine:
         }
 
     @classmethod
-    def from_dict(cls, env: Environment, logger, data, serializer):
+    def from_dict(cls, app_state: AppState, logger, data, serializer):
         return cls(
-            env,
+            app_state,
             (
                 State.from_dict(data["input_machine"], serializer),
                 State.from_dict(data["processing_machine"], serializer),

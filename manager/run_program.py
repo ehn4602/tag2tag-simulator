@@ -1,17 +1,24 @@
 from typing import Dict
-from simpy import Environment
 
 from manager.application_layer import application_layer
 from manager.tag_manager import TagManager
-from tags.tag import Tag
+from state import AppState
+from tags.tag import Exciter, Tag
 
 
-def run_program(env: Environment, main_exciter, tags: Dict[str, Tag], events, default):
-    # TODO: make this an instance field rather than static 
-    TagManager.tag_manager = TagManager(main_exciter, tags=tags)
+# TODO: is default needed as an argument?
+def run_program(
+    app_state: AppState,
+    main_exciter: Exciter,
+    tags: Dict[str, Tag],
+    events,
+    default,
+):
+    app_state.set_tag_manager(TagManager(main_exciter, tags=tags))
 
-    env.process(application_layer(env))
+    # TODO: add events
+    # env.process(application_layer(env))
     for tag in tags.values():
         tag.run()
 
-    env.run(until=100000)
+    app_state.env.run(until=100000)
