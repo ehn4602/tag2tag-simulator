@@ -94,7 +94,6 @@ class TimerAcceptor(ABC):
             self._last_timer = None
         if delay != 0:
             self._last_timer = self._scheduler.set_timer(self, delay)
-        # TODO: what about if delay is zero?
         # TODO: What about if delay is zero?
 
     @abstractmethod
