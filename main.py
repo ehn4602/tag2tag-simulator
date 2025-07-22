@@ -1,14 +1,10 @@
 import argparse
 import bisect
-from datetime import datetime
 import heapq
 import json
 import logging
 import os
-import queue
 import sys
-from logging.handlers import QueueHandler, QueueListener
-from pathlib import Path
 from typing import Optional
 
 from event.load_events import load_event, load_events, sort_events
@@ -16,6 +12,7 @@ from manager.run_program import run_simulation
 from tags.tag import *
 from tags.state_machine import *
 from event.base_event import *
+from util.app_logger import init_logger
 
 CONFIG_PATH = "./config/config.json"
 STATE_PATH = "./config/states.json"
@@ -257,6 +254,19 @@ def parse_args():
         help="makes loading add onto the existing data rather than overwriting",
     )
 
+    LOG_LEVELS = {
+        "ERROR": logging.ERROR,
+        "WARNING": logging.WARNING,
+        "INFO": logging.INFO,
+        "DEBUG": logging.DEBUG,
+    }
+    parser.add_argument(
+        "--loglevel",
+        type=str.upper,
+        choices=LOG_LEVELS.keys(),
+        default="INFO",
+        help="Set the logging level (default: INFO)",
+    )
     return parser.parse_args()
 
 
@@ -396,57 +406,16 @@ def load_txt(
             return exciter, objects, events, default
 
 
-def init_logger(
-    level, filename="tagsim.log", stdout=False
-) -> tuple[logging.Logger, QueueListener]:
-    """
-    Initializes a logger that can then be used throughout the program.
-
-    Arguments:
-    level -- The logging level to log at
-    filename -- Name of the file where the log is to be stored, tagsim.log in
-                PWD by default.
-    stdout -- Whether or not to print Log to stdout. False by default.
-
-    Returns: The handle to the logger
-    """
-    log_queue = queue.Queue()
-    qh = QueueHandler(log_queue)
-
-    logger = logging.getLogger(__name__)
-    logging.basicConfig(
-        handlers=[qh],
-        format=f"%(asctime)s::%(levelname)s::{Path(__file__).name}: %(msg)s",
-        level=level,
-    )
-
-    block_handlers = []
-
-    directory = "logs"
-    filename = os.path.join(directory, filename)
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    time_format = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
-    fhandle = logging.FileHandler(f"{filename}-{time_format}")
-    block_handlers.append(fhandle)
-
-    if stdout:
-        shandle = logging.StreamHandler()
-        block_handlers.append(shandle)
-
-    ql = QueueListener(log_queue, *block_handlers)
-    ql.start()
-    return logger, ql
-
-
 def main():
     app_state: AppState = AppState()
 
     serializer = StateSerializer()
 
-    ## TODO give tags their approriate tagmodes
+    # TODO give tags their approriate tagmodes
+    args = parse_args()
 
-    logger, q_listener = init_logger(logging.INFO)
+    # TODO Change this to take in arguments from the command line
+    logger, q_listener = init_logger(app_state, args.loglevel, stdout=False)
     load_json(STATE_PATH, serializer)
 
     main_exciter, objects, events, default = load_json(
@@ -461,10 +430,6 @@ def main():
         "output_machine_id",
     ]
     machine_defined = not any(default[k] == "UNKNOWN" for k in machine_id_keys)
-    args = parse_args()
-
-    # TODO Change this to take in arguments from the command line
-    logger, q_listener = init_logger(logging.INFO)
 
     if args.load is not None:  # load in a file
         file_type = args.load.split(".")[-1]
@@ -588,10 +553,12 @@ def main():
         events.insert(position, new_event)
 
     save_config(main_exciter, objects, events, default, serializer)
-    q_listener.stop()
 
     # TODO: run only if there was no arguments passed in cmd
     run_simulation(app_state, main_exciter, objects, events, default)
+
+    q_listener.stop()
+    logging.shutdown()
 
 
 if __name__ == "__main__":

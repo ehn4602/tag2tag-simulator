@@ -81,10 +81,12 @@ class TimerScheduler:
 
 # Maybe rename to TimerAccessor
 class TimerAcceptor(ABC):
+    # TODO remove this method?
     def __init__(self, timer: TimerScheduler):
         self._scheduler = timer
         self._last_timer: Optional[Timer] = None
 
+    # TODO remove this method?
     def set_timer(self, delay: int):
         """
         Schedules a timer event
@@ -222,14 +224,21 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
         self.registers: List[int | float] = [0 for _ in range(8)]
 
     def _cmd(self, cmd_first: str, cmd_rest: List):
-        method_name = "_cmd_" + cmd_first
+        cmd_name = "_cmd_" + cmd_first
 
         # TODO: Convert to debug logging
         tag_name = self.tag_machine.tag.get_name()
         arguments = ",".join([str(arg) for arg in cmd_rest])
-        logging.info(f"[{tag_name}] {method_name}({arguments})")
+        logging.debug(
+            f"[{tag_name}] Run Command: {cmd_name}({arguments})",
+            extra={
+                "tag": tag_name,
+                "func": cmd_name,
+                "arguments": arguments,
+            },
+        )
 
-        getattr(self, method_name)(*cmd_rest)
+        getattr(self, cmd_name)(*cmd_rest)
 
     def _cmd_mov(self, dst, src):
         """
@@ -379,7 +388,8 @@ class OutputMachine(ExecuteMachine, TimerAcceptor):
         super().__init__(tag_machine, init_state)
 
     def _cmd_set_antenna(self, reg):
-        self.tag_machine.tag.set_mode_reflect(self.registers[reg])
+        reflection_index = self.registers[reg]
+        self.tag_machine.tag.set_mode_reflect(reflection_index)
 
     def _cmd_set_listen(self):
         self.tag_machine.tag.set_mode_listen()

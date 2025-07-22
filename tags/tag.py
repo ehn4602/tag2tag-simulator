@@ -1,3 +1,4 @@
+import logging
 from typing import List, Optional, Self
 
 from state import AppState
@@ -166,15 +167,27 @@ class Tag(PhysicsObject):
 
     def read_voltage(self) -> float:
         tag_manager = self.app_state.tag_manager
-        return tag_manager.get_received_voltage(self)
+        voltage = tag_manager.get_received_voltage(self)
+        logging.info(
+            f"[{self.name}] Read voltage: {voltage}",
+            extra={"tag": self.name, voltage: voltage},
+        )
+        return voltage
 
     def to_dict(self):
         """For placing tags into dicts correctly on JSON"""
+
+        # TODO what if self.power was set to default?
         return {
             "tag_machine": self.tag_machine.to_dict(),
             "x": self.pos[0],
             "y": self.pos[1],
             "z": self.pos[2],
+            "power": self.power,
+            "gain": self.gain,
+            "impedance": self.impedance,
+            "frequency": self.frequency,
+            "reflection_coefficients": self.reflection_coefficients,
         }
 
     @classmethod

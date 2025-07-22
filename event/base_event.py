@@ -30,6 +30,12 @@ class Event(ABC):
     def run(self):
         raise NotImplementedError("Tag event wasn't implemented")
 
+    def log_extra(self):
+        """Return extra information for logging"""
+        return {
+            "event_type": self.event_type,
+        }
+
     def __str__(self):
         return f"Event.{self.event_type}{{id={self.id}}}"
 

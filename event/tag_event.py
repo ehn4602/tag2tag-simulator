@@ -12,6 +12,14 @@ class TagEvent(Event):
         self.tag: Tag
         self._parse_tag(parser)
 
+    @override
+    def log_extra(self):
+        """Return extra information for logging"""
+        return {
+            **super().log_extra(),
+            "tag": self.tag.name,
+        }
+
     def _parse_tag(self, parser: EventParser):
         tag_name: str = parser.get_required_arg("tag")
 
@@ -49,6 +57,17 @@ class TagSetModeEvent(TagEvent):
             # The cause gives more details
             error_msg = f"{self}: Cannot parse mode and reflection_index."
             raise ValueError(error_msg) from e
+
+    @override
+    def log_extra(self):
+        """Return extra information for logging"""
+        return {
+            **super().log_extra(),
+            "mode": {
+                "is_listening": self.mode.is_listening(),
+                "reflection_index": self.mode.get_reflection_index(),
+            },
+        }
 
     @override
     def run(self):
