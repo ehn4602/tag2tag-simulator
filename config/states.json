@@ -55,16 +55,16 @@
                         ],
                         [
                             "_comment",
-                            "wait ~4 intervals"
+                            "wait ~4 intervals -- use register 2 as scratch"
                         ],
                         [
                             "load_imm",
-                            0,
+                            2,
                             35
                         ],
                         [
                             "set_timer",
-                            0
+                            2
                         ]
                     ],
                     "sender_processing_1"
