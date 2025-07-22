@@ -11,7 +11,8 @@ from logging.handlers import QueueHandler, QueueListener
 from pathlib import Path
 from typing import Optional
 
-from manager.run_program import run_program
+from event.load_events import load_event, load_events, sort_events
+from manager.run_program import run_simulation
 from tags.tag import *
 from tags.state_machine import *
 from event.base_event import *
@@ -26,7 +27,7 @@ DEFAULT_STATS = {
     "impedance": 50,
     "frequency": 100,
     "input_machine_id": "UNKNOWN",
-    "proccessing_machine_id": "UNKOWN",
+    "proccessing_machine_id": "UNKNOWN",
     "output_machine_id": "UNKNOWN",
     "reflection_coefficients": [],
 }
@@ -88,7 +89,7 @@ def load_json(
             if state_output is not None:
                 return None, None, None, state_output
         elif format == "events":
-            events = [EventArgs.from_dict(e) for e in raw_data.get("Events")]
+            events: List[Event] = load_events(raw_data.get("Events"))
             return None, None, events, None
         else:
             print("error: invalid JSON format")
@@ -106,7 +107,7 @@ def load_json(
 def save_config(
     exciter: Exciter,
     objects: dict,
-    events: list,
+    events: List[Event],
     default: dict,
     serializer: StateSerializer,
 ):
@@ -144,6 +145,12 @@ def save_config(
                 "Format": "state_machine",
                 "states": serializer.to_dict(),
             },
+            f,
+            indent=4,
+        )
+    with open(EVENT_PATH, "w") as f:
+        json.dump(
+            {"Format": "events", "Events": [e.to_dict() for e in events]},
             f,
             indent=4,
         )
@@ -370,11 +377,8 @@ def load_txt(
                             i += 2
                         else:
                             i += 1
-                    new_event = EventArgs(**event_args)
-                    times = [e.delay for e in events]
-                    position = bisect.bisect_left(times, new_event.delay)
-                    events.insert(position, new_event)
-
+                    events.append(load_event(event_args))
+                    events = sort_events(events)
                 elif info[0] == "load":
                     if os.path.exists(info[1]):
                         with open(info[1], "r") as f:
@@ -456,8 +460,7 @@ def main():
         "proccessing_machine_id",
         "output_machine_id",
     ]
-    # "UNKNOWN" typo?
-    machine_defined = not any(default[k] == "UNKOWN" for k in machine_id_keys)
+    machine_defined = not any(default[k] == "UNKNOWN" for k in machine_id_keys)
     args = parse_args()
 
     # TODO Change this to take in arguments from the command line
@@ -543,7 +546,7 @@ def main():
         if args.remove in objects:
             del objects[args.remove]
         else:
-            print("unkown id")
+            print("unknown id")
 
     if args.print:  ## prints out information
         lower_args = args.print.lower()
@@ -571,26 +574,24 @@ def main():
 
     # Events will be reconfigure later to work along side events.json
     if args.event:  # adds an event
+        # TODO ask if we can get args.event as a dict rather than a list
         event = args.event
         if event[1] not in objects:
-            print("error, unkown tag:", event[1])
+            print("error, unknown tag:", event[1])
         event_args = {}
-        event_args["delay"] = int(event[0])
-        event_args["tag"] = event[1]
-        event_args["event_type"] = event[2]
-        event_args["tag"] = event[1]
-        if args.event_transmission:
-            event_args["transmission"] = args.event_transmission[0]
-        if args.event_mode:
-            event_args["mode"] = args.event_mode[0]
-        new_event = EventArgs(**event_args)
-        times = [e.delay for e in events]
-        position = bisect.bisect_left(times, new_event.delay)
+        event_args["time"] = int(event[0])
+        event_args["event_type"] = event[1]
+        event_args.update({})  # TODO any kwargs passed in cmd
+
+        new_event = load_event(**event_args)
+        position = bisect.bisect_left(events, new_event)
         events.insert(position, new_event)
+
     save_config(main_exciter, objects, events, default, serializer)
     q_listener.stop()
 
-    run_program(app_state, main_exciter, objects, events, default)
+    # TODO: run only if there was no arguments passed in cmd
+    run_simulation(app_state, main_exciter, objects, events, default)
 
 
 if __name__ == "__main__":

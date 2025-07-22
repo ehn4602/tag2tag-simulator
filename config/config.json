@@ -16,9 +16,9 @@
     },
     "Exciter": {
         "id": "default",
-        "x": "10",
-        "y": "10",
-        "z": "10",
+        "x": 10.0,
+        "y": 10.0,
+        "z": 10.0,
         "power": 1,
         "gain": 100,
         "impedance": 50.0,
@@ -31,9 +31,9 @@
                 "processing_machine": "sender_processing_0",
                 "output_machine": "sender_output_0"
             },
-            "x": "2",
-            "y": "2",
-            "z": "2"
+            "x": 2.0,
+            "y": 2.0,
+            "z": 2.0
         },
         "Receiver": {
             "tag_machine": {
@@ -41,9 +41,9 @@
                 "processing_machine": "receiver_processing_0",
                 "output_machine": "receiver_output_0"
             },
-            "x": "0",
-            "y": "8",
-            "z": "3"
+            "x": 0.0,
+            "y": 8.0,
+            "z": 3.0
         }
     }
 }

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional, Self
 
 from state import AppState
 from tags.state_machine import TagMachine
@@ -18,6 +18,18 @@ class TagMode:
 
     def get_reflection_index(self) -> int:
         return self._index
+
+    def from_data(mode_str: str, reflection_index: Optional[int]) -> Self:
+        mode_str = mode_str.upper()
+        match (mode_str):
+            case "TRANSMIT":
+                if reflection_index is not None:
+                    return TagMode(reflection_index)
+                raise ValueError("TRANSMIT mode requires a reflection_index")
+            case "LISTEN":
+                return TagMode.LISTENING
+            case _:
+                raise ValueError(f"Unknown TagMode: {mode_str}")
 
 
 TagMode.LISTENING = TagMode(TagMode._LISTENING_IDX)

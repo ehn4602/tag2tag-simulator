@@ -3,20 +3,21 @@
     "Events": [
         {
             "event_type": "tag_set_mode",
-            "delay": 100,
-            "tag": "jupiter",
+            "time": 100,
+            "tag": "Sender",
             "mode": "transmit",
-            "transmission": "1010101"
+            "reflection_index": 1
         },
         {
             "event_type": "tag_set_mode",
-            "delay": 123,
-            "tag": "neptune"
+            "time": 123,
+            "mode": "listen",
+            "tag": "Receiver"
         },
         {
             "event_type": "tag_set_mode",
-            "delay": 234,
-            "tag": "uranus",
+            "time": 234,
+            "tag": "Sender",
             "mode": "listen"
         }
     ]

@@ -1,20 +1,13 @@
-from __future__ import annotations
-
-from typing import TYPE_CHECKING, Dict
-
+from typing import Dict
+from physics import PhysicsEngine
 from tags.tag import Exciter, Tag
-
-import physics
-
-if TYPE_CHECKING:
-    pass
 
 
 class TagManager:
 
     def __init__(self, exciter: Exciter, tags: Dict[str, Tag] = dict()):
         self.tags: Dict[str, Tag] = tags
-        self.physics_engine = physics.PhysicsEngine(exciter)
+        self.physics_engine = PhysicsEngine(exciter)
 
     def add_tags(self, *tags: Tag) -> None:
         """
