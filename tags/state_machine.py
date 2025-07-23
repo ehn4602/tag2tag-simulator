@@ -384,9 +384,6 @@ class OutputMachine(ExecuteMachine, TimerAcceptor):
     def _cmd_set_listen(self):
         self.tag_machine.tag.set_mode_listen()
 
-    def _cmd_set_timer(self, time):
-        self.tag_machine.timer.set_timer(self, time)
-
     def _cmd_queue_processing(self):
         self.tag_machine.processing_machine.on_queue_up()
 
