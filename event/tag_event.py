@@ -63,10 +63,7 @@ class TagSetModeEvent(TagEvent):
         """Return extra information for logging"""
         return {
             **super().log_extra(),
-            "mode": {
-                "is_listening": self.mode.is_listening(),
-                "reflection_index": self.mode.get_reflection_index(),
-            },
+            "mode": self.mode.log_extra(),
         }
 
     @override

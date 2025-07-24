@@ -233,7 +233,7 @@
                         [
                             "load_imm",
                             2,
-                            0.2
+                            0.0005
                         ]
                     ],
                     "receiver_input_1"

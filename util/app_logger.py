@@ -1,12 +1,17 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
 from datetime import datetime
 import logging
 from logging.handlers import QueueHandler, QueueListener
 import os
 import queue
-from typing import Tuple
 
 from pythonjsonlogger.jsonlogger import JsonFormatter
 from state import AppState
+
+if TYPE_CHECKING:
+    from tags.tag import Tag
 
 
 # Add sympy time to logging
@@ -39,7 +44,7 @@ def init_logger(
     logger_name=None,
     base_filename="tagsim.log",
     stdout=False,
-) -> Tuple[logging.Logger, QueueListener]:
+) -> tuple[logging.Logger, QueueListener]:
     """
     Initializes a logger that can then be used throughout the program.
 
@@ -64,11 +69,10 @@ def init_logger(
         fmt=f"t=%(simpy_time)s::%(levelname)s::{logger.name}: %(msg)s",
     )
     json_formatter = JsonFormatter(
-        fmt="%(simpy_time)s %(levelname)s %(name)s %(message)s",
+        fmt="%(simpy_time)s %(levelname)s %(message)s",
         rename_fields={
             "simpy_time": "time",
             "levelname": "level",
-            "name": "logger",
             "message": "msg",
         },
     )
@@ -101,3 +105,27 @@ def init_logger(
     ql.start()
 
     return logger, ql
+
+
+class TagLoggerAdapter(logging.LoggerAdapter):
+    def __init__(self, logger, extra=None, merge_extra=False):
+        super().__init__(logger, extra, merge_extra)
+        self.tag_name = extra["tag"]
+
+    def process(self, msg, kwargs):
+        msg, kwargs = super().process(msg, kwargs)
+        return f"[Tag {self.tag_name}] {msg}", kwargs
+
+
+def init_tag_logger(tag: Tag) -> logging.LoggerAdapter:
+    """
+    Initializes a logger specifically for a tag.
+
+    Arguments:
+    tag -- The tag for which the logger is being initialized.
+
+    Returns: The newly created logger for the tag.
+    """
+    tag_logger = logging.getLogger(f"tag.{tag.name}")
+    added_context = {"tag": tag.name}
+    return TagLoggerAdapter(tag_logger, extra=added_context, merge_extra=True)

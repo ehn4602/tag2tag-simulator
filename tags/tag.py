@@ -1,8 +1,9 @@
 import logging
-from typing import List, Optional, Self
+from typing import Optional, Self
 
 from state import AppState
 from tags.state_machine import TagMachine
+from util.app_logger import init_tag_logger
 from util.types import Position
 
 
@@ -19,6 +20,14 @@ class TagMode:
 
     def get_reflection_index(self) -> int:
         return self._index
+
+    def log_extra(self) -> dict:
+        if self.is_listening():
+            return {"is_listening": True}
+        return {
+            "is_listening": False,
+            "reflection_index": self.get_reflection_index(),
+        }
 
     def from_data(mode_str: str, reflection_index: Optional[int]) -> Self:
         mode_str = mode_str.upper()
@@ -133,12 +142,13 @@ class Tag(PhysicsObject):
         gain: float,
         impedance: float,
         frequency: float,
-        reflection_coefficients: List[float],
+        reflection_coefficients: list[float],
     ):
         super().__init__(app_state, name, pos, power, gain, impedance, frequency)
         self.tag_machine = tag_machine
         self.mode = mode
         self.reflection_coefficients = reflection_coefficients
+        self.logger: logging.LoggerAdapter = init_tag_logger(self)
 
     def __str__(self):
         return f"Tag={{{self.name}}}"
@@ -151,6 +161,13 @@ class Tag(PhysicsObject):
 
     def set_mode(self, tag_mode: TagMode):
         self.mode = tag_mode
+
+        msg: str
+        if self.mode.is_listening():
+            msg = "Set mode to LISTENING"
+        else:
+            msg = f"Set mode to REFLECT with index {self.mode.get_reflection_index()}"
+        self.logger.info(msg, extra={"mode": self.mode.log_extra()})
 
     def set_mode_listen(self):
         self.set_mode(TagMode.LISTENING)
@@ -168,9 +185,9 @@ class Tag(PhysicsObject):
     def read_voltage(self) -> float:
         tag_manager = self.app_state.tag_manager
         voltage = tag_manager.get_received_voltage(self)
-        logging.info(
-            f"[{self.name}] Read voltage: {voltage}",
-            extra={"tag": self.name, voltage: voltage},
+        self.logger.info(
+            f"Read voltage: {voltage}",
+            extra={"voltage": voltage},
         )
         return voltage
 

@@ -223,20 +223,11 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
         self.transition_queue: Optional[List[str]] = None
         self.registers: List[int | float] = [0 for _ in range(8)]
 
+    def logger(self):
+        return self.tag_machine.tag.logger
+
     def _cmd(self, cmd_first: str, cmd_rest: List):
         cmd_name = "_cmd_" + cmd_first
-
-        # TODO: Convert to debug logging
-        tag_name = self.tag_machine.tag.get_name()
-        arguments = ",".join([str(arg) for arg in cmd_rest])
-        logging.debug(
-            f"[{tag_name}] Run Command: {cmd_name}({arguments})",
-            extra={
-                "tag": tag_name,
-                "func": cmd_name,
-                "arguments": arguments,
-            },
-        )
 
         getattr(self, cmd_name)(*cmd_rest)
 
@@ -244,37 +235,91 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
         """
         Performs dst := src
         """
-        self.registers[dst] = self.registers[src]
+        value = self.registers[src]
+        self.registers[dst] = value
+        self.logger().debug(
+            "cmd_mov(%s,%(src)s): reg[%s] = reg[%(src)s]: %s",
+            dst,
+            src,
+            dst,
+            src,
+            value,
+            extra={"dst": dst, "src": src, "value": value},
+        )
 
-    def _cmd_load_imm(self, dst, val):
+    def _cmd_load_imm(self, dst, value):
         """
-        Performs dst := $val
+        Performs dst := $value
         """
-        self.registers[dst] = val
+        self.registers[dst] = value
+        self.logger().debug(
+            "cmd_load_imm(%s,%s): reg[%s] = %s",
+            dst,
+            value,
+            dst,
+            value,
+            extra={"dst": dst, "value": value},
+        )
 
     def _cmd_sub(self, dst, a, b):
         """
         Performs dst := a - b
         """
-        self.registers[dst] = self.registers[a] - self.registers[b]
+        value = self.registers[dst] = self.registers[a] - self.registers[b]
+        self.logger().debug(
+            "cmd_sub(%s,%s,%s): reg[%s] = reg[%s] - reg[%s]: %s",
+            dst,
+            a,
+            b,
+            dst,
+            a,
+            b,
+            value,
+            extra={"dst": dst, "a": a, "b": b, "value": value},
+        )
 
     def _cmd_add(self, dst, a, b):
         """
         Performs dst := a + b
         """
-        self.registers[dst] = self.registers[a] + self.registers[b]
+        value = self.registers[dst] = self.registers[a] + self.registers[b]
+        self.logger().debug(
+            "cmd_add(%s,%s,%s): reg[%s] = reg[%s] + reg[%s]: %s",
+            dst,
+            a,
+            b,
+            dst,
+            a,
+            b,
+            value,
+            extra={"dst": dst, "a": a, "b": b, "value": value},
+        )
 
     def _cmd_floor(self, a):
         """
         Performs a := int(a)
         """
-        self.registers[a] = int(self.registers[a])
+        value = self.registers[a] = int(self.registers[a])
+        self.logger().debug(
+            "cmd_floor(%s): floor(reg[%s]): %s",
+            a,
+            a,
+            value,
+            extra={"a": a, "value": value},
+        )
 
     def _cmd_abs(self, a):
         """
         Performs a := abs(a)
         """
-        self.registers[a] = abs(self.registers[a])
+        value = self.registers[a] = abs(self.registers[a])
+        self.logger().debug(
+            "cmd_abs(%s): abs(reg[%s]): %s",
+            a,
+            a,
+            value,
+            extra={"a": a, "value": value},
+        )
 
     def _cmd_compare(self, a, b):
         """
@@ -292,6 +337,16 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
             sym = "gt"
         self._accept_symbol(sym)
 
+        self.logger().debug(
+            "cmd_compare(%s,%s): comp(reg[%s], reg[%s]): %s",
+            a,
+            b,
+            a,
+            b,
+            sym,
+            extra={"a": a, "b": b, "value": sym},
+        )
+
     def _cmd__comment(self, *comment_lines: str):
         pass
 
@@ -302,9 +357,21 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
 
     def _cmd_self_trigger(self, symbol):
         self._accept_symbol(symbol)
+        self.logger().debug(
+            "cmd_self_trigger(%s)",
+            symbol,
+            extra={"symbol": symbol},
+        )
 
     def _cmd_set_timer(self, timer_reg):
-        self.tag_machine.timer.set_timer(self, self.registers[timer_reg])
+        delay = self.registers[timer_reg]
+        self.tag_machine.timer.set_timer(self, delay)
+        self.logger().debug(
+            "cmd_set_timer(%s): set timer to %s",
+            timer_reg,
+            delay,
+            extra={"timer_reg": timer_reg, "delay": delay},
+        )
 
     def prepare(self):
         self._accept_symbol("init")
@@ -336,7 +403,14 @@ class InputMachine(ExecuteMachine):
         super().__init__(tag_machine, init_state)
 
     def _cmd_save_voltage(self, out_reg):
-        self.registers[out_reg] = self.tag_machine.tag.read_voltage()
+        voltage = self.registers[out_reg] = self.tag_machine.tag.read_voltage()
+        self.logger().debug(
+            "cmd_save_voltage(%s): reg[%s] = %s",
+            out_reg,
+            out_reg,
+            voltage,
+            extra={"out_reg": out_reg, "voltage": voltage},
+        )
 
     def _cmd_send_bit(self, reg):
         self.tag_machine.processing_machine.on_recv_bit(self.registers[reg] != 0)
@@ -368,7 +442,7 @@ class ProcessingMachine(ExecuteMachine):
         self.tag_machine.output_machine.on_recv_int(self.registers[reg])
 
     def _cmd_send_int_log(self, reg):
-        self.tag_machine.logger.log(str(self.registers[reg]))
+        self.tag_machine.machine_logger.log(str(self.registers[reg]))
 
     def _cmd_store_mem_imm(self, reg_addr, imm):
         if isinstance(imm, tuple):
@@ -394,9 +468,6 @@ class OutputMachine(ExecuteMachine, TimerAcceptor):
     def _cmd_set_listen(self):
         self.tag_machine.tag.set_mode_listen()
 
-    def _cmd_set_timer(self, time):
-        self.tag_machine.timer.set_timer(self, time)
-
     def _cmd_queue_processing(self):
         self.tag_machine.processing_machine.on_queue_up()
 
@@ -413,7 +484,7 @@ class TagMachine:
         logger: Logger,
     ):
         self.timer = TimerScheduler(app_state)
-        self.logger = MachineLogger(logger)
+        self.machine_logger = MachineLogger(logger)
         self.input_machine = InputMachine(self, init_states[0])
         self.processing_machine = ProcessingMachine(self, init_states[1])
         self.output_machine = OutputMachine(self, init_states[2])
