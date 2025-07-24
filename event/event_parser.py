@@ -8,7 +8,9 @@ type ArgParseConditions = List[Tuple[bool, str]]
 
 
 class EventParser:
-    """Represents an event loaded from the config which is the arguments to dispatch the event"""
+    """
+    Represents the data for an event loaded from a config file.
+    """
 
     def __init__(self, **kwargs):
         self.event_type: str = kwargs.pop("event_type").casefold()

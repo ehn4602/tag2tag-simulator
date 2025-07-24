@@ -7,11 +7,19 @@ from util.identifiers import id_generator
 
 
 class Event(ABC):
-    """Represents an implemented Event that can be run."""
+    """
+    An abstract base class representing an Event that can be run.
+    """
 
     id_gen = id_generator()
 
     def __init__(self, parser: EventParser):
+        """
+        Creates an Event.
+
+        Args:
+            parser (EventParser): Parsed event data.
+        """
         super().__init__()
         # id is only used for debugging purposes
         self.id: int = next(Event.id_gen)

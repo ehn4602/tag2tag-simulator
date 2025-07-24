@@ -1,4 +1,5 @@
-from typing import Tuple
+from types import UnionType
 
+type Position = tuple[float, float, float]
 
-type Position = Tuple[float, float, float]
+type StateMethod = UnionType[tuple[StateMethod, ...], str, int]

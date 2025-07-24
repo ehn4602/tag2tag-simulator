@@ -41,10 +41,11 @@ def load_json(
     app_state: Optional[AppState] = None,
     default: Optional[dict] = None,
 ):
-    """Loads config file, gaining information it needs to run
+    """
+    Loads config file, collecting information the simulator needs to run.
 
     Returns:
-        exciter,tags,events,default: List of information thats stored in JSON file
+        exciter,tags,events,default: List of information stored in the JSON file.
     """
 
     default_exciter = Exciter(
@@ -107,15 +108,16 @@ def load_json(
 def save_config(
     exciter: Exciter,
     objects: dict,
-    events: List[Event],
+    events: list[Event],
     default: dict,
     serializer: StateSerializer,
 ):
-    """offloads changes back to JSON file
+    """
+    Stored config changes back to a JSON file.
 
     Args:
-        tags (dict): Dictionary of the tags that are in the system
-        events (list): List of events that simulation will peform
+        tags (dict): Dictionary of the tags that are in the system.
+        events (list[Event]): List of events that simulation will peform.
     """
     with open(CONFIG_PATH, "w") as f:
         json.dump(
@@ -163,12 +165,14 @@ def save_config(
 
 
 def parse_obj(vals: list):
-    """Ensures the tag argument has the correct values
+    """
+    Verifies the correctness of tag arguments.
+
     Args:
-        vals (List): tag ID, and its coordinats
+        vals (list): The tag ID, followed by its coordinates.
 
     Returns:
-        _type_: _description_
+        id, x, y, z: The tag ID, followed by coordinates verified to be floats.
     """
     id = vals[0]
     try:
@@ -179,16 +183,17 @@ def parse_obj(vals: list):
     return id, coords[0], coords[1], coords[2]
 
 
-def parse_default(vals, default: dict, serializer: StateSerializer):
-    """parses argumnet values to fill out default value correctly
+def parse_default(vals, default: dict, serializer: StateSerializer) -> dict:
+    """
+    Parses argumnet values to fill out default value correctly.
 
     Args:
-        vals (List): List of vals given via argument
-        default (Dict): Dictionary representing default information
-        serializer (StateSerializer): serializer with information about the known states in the system
+        vals (list): List of vals given via argument.
+        default (dict): Dictionary representing default information.
+        serializer (StateSerializer): Serializer with information about the known states in the system.
 
     Returns:
-        default: updated dictionary
+        default (dict): Updated dictionary.
     """
     if vals[0].lower() in ["exciter_power", "impedance", "gain", "frequency"]:
         try:
@@ -212,11 +217,12 @@ def parse_default(vals, default: dict, serializer: StateSerializer):
     sys.exit(1)
 
 
-def parse_args():
-    """Parses arguments, can be in any order
+def parse_args() -> argparse.Namespace:
+    """
+    Parses arguments. Handles arguments in any order.
 
     Returns:
-        ArgumentParser: Argument parser which holds values of which arguments where given
+        arguments (Namespace): Collection of arguments parsed.
     """
     parser = argparse.ArgumentParser(description="Tag-to-Tag Network Simulator")
     parser.add_argument(
@@ -260,13 +266,16 @@ def parse_args():
     return parser.parse_args()
 
 
-def load_states(data: dict, serializer: StateSerializer, default: dict):
-    """loads states from state_machine or states config file
+def load_states(
+    data: dict, serializer: StateSerializer, default: dict
+) -> Optional[dict]:
+    """
+    Loads states from state_machine or states config file.
 
     Args:
-        data (dict): JSON dict file
-        serializer (StateSerializer): Serializer with information about states within the system
-        default (dict): dictionary with default information
+        data (dict): JSON dict file.
+        serializer (StateSerializer): Serializer with information about states within the system.
+        default (dict): Dictionary with default information.
 
     Returns:
         default: updated default, only updates if state_machine loaded with type value on it.
@@ -299,12 +308,14 @@ def load_txt(
     serializer: StateSerializer,
     logger: logging.Logger,
 ):
-    """Loads arguments via a text file. Format is the same as arguments
+    """
+    Loads arguments via a text file. Format is the same as command line arguments.
+
     Args:
-        filepath (string): text file to load in
+        filepath (str): Text file to load.
 
     Returns:
-        objects,events,default: information about the simulation configuration
+        objects,events,default: Information about the simulation configuration.
     """
 
     default = DEFAULT_STATS
@@ -397,18 +408,19 @@ def load_txt(
 
 
 def init_logger(
-    level, filename="tagsim.log", stdout=False
+    level, filename: str = "tagsim.log", stdout: bool = False
 ) -> tuple[logging.Logger, QueueListener]:
     """
-    Initializes a logger that can then be used throughout the program.
+    Initializes a logger that can be used throughout the program.
 
     Arguments:
-    level -- The logging level to log at
-    filename -- Name of the file where the log is to be stored, tagsim.log in
-                PWD by default.
-    stdout -- Whether or not to print Log to stdout. False by default.
+        level: The logging level to log at.
+        filename (str): Name of the file where the log is to be stored, tagsim.log in
+        PWD by default.
+        stdout (bool): Whether or not to print Log to stdout. False by default.
 
-    Returns: The handle to the logger
+    Returns:
+        logger, queue_listener (tuple[logging.Logger, QueueListener]): Logger objects.
     """
     log_queue = queue.Queue()
     qh = QueueHandler(log_queue)
@@ -440,6 +452,9 @@ def init_logger(
 
 
 def main():
+    """
+    Main function, responsible for running the program.
+    """
     app_state: AppState = AppState()
 
     serializer = StateSerializer()

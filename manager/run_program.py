@@ -1,5 +1,3 @@
-from typing import Dict, List
-
 from event.base_event import Event
 from manager.tag_manager import TagManager
 from state import AppState
@@ -11,8 +9,14 @@ def dispatch_event(event: Event):
     event.run()
 
 
-def run_events(app_state: AppState, events: List[Event]):
-    """The top-level simpy process that oversees tag communication and represents external inputs"""
+def run_events(app_state: AppState, events: list[Event]):
+    """
+    The top-level simpy process that oversees tag communication and represents external inputs.
+
+    Args:
+        app_state (AppState): The app state.
+        events (list[Event]): The list of events to run.
+    """
     # Prepare events with app_state
     for event in events:
         event.prepare(app_state)
@@ -30,10 +34,20 @@ def run_events(app_state: AppState, events: List[Event]):
 def run_simulation(
     app_state: AppState,
     main_exciter: Exciter,
-    tags: Dict[str, Tag],
-    events: List[Event],
+    tags: dict[str, Tag],
+    events: list[Event],
     default,
 ):
+    """
+    Run the simulation.
+
+    Args:
+        app_state (AppState): The app state.
+        main_exciter (Exciter): An exciter.
+        tags (dict[str, Tag]): A dictionary of tags to simulate, indexed by tag name.
+        events (list[Event]): A list of events to simulate.
+        default (Any): Default values, currently unused.
+    """
     app_state.set_tag_manager(TagManager(main_exciter, tags=tags))
     env = app_state.env
 

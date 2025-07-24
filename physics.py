@@ -6,7 +6,7 @@ import scipy.spatial.distance as dist
 from scipy.constants import c, e, pi
 
 if TYPE_CHECKING:
-    from tags.tag import Exciter, Positionable, Tag
+    from tags.tag import Exciter, PhysicsObject, Tag
 
 
 class PhysicsEngine:
@@ -28,7 +28,7 @@ class PhysicsEngine:
         den = tx_directivity * rx_directivity * (wavelength**2)
         return num / den
 
-    def power_at_rx(self, tx: Positionable, rx: Tag) -> float:
+    def power_at_rx(self, tx: PhysicsObject, rx: Tag) -> float:
         """
         Determine the power a tag receives from a transmitter given known
         constants and provided tag information. The output is in mW.
@@ -51,7 +51,7 @@ class PhysicsEngine:
         distance = dist.euclidean(tx.get_position(), rx.get_position())
         return p_tx * g_tx * g_rx * ((wavelength / (4 * pi * distance)) ** 2)
 
-    def v_dc(self, tx: Positionable, rx: Tag) -> float:
+    def v_dc(self, tx: PhysicsObject, rx: Tag) -> float:
         """
         Determine the DC voltage output at rx in volts.
 
@@ -118,7 +118,7 @@ class PhysicsEngine:
         v_pk = sqrt(abs(rx_resist * rx_pwr_recieved) / 500)
         return v_pk / sqrt(2)
 
-    def get_sig_tx_rx(self, tx: Positionable, rx: Tag):
+    def get_sig_tx_rx(self, tx: PhysicsObject, rx: Tag):
         """
         Gets the signal from a tag or exciter to another tag
         """
