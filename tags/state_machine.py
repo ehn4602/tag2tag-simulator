@@ -709,6 +709,15 @@ class ProcessingMachine(ExecuteMachine):
         """
         self.tag_machine.logger.log(str(self.registers[reg]))
 
+    def _cmd_send_str_log(self, s: str):
+        """
+        Command that sends a string to an associated logger.
+
+        Args:
+            reg (int): Input register.
+        """
+        self.tag_machine.logger.log(s)
+
     def _cmd_store_mem_imm(self, reg_addr: int, imm: Union[tuple[int,], int]):
         """
         Command that stores immediate value(s) in memory.

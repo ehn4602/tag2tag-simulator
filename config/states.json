@@ -285,8 +285,13 @@
                             "below threshold"
                         ],
                         [
-                            "send_bit",
+                            "load_imm",
+                            3,
                             0
+                        ],
+                        [
+                            "send_bit",
+                            3
                         ],
                         [
                             "set_timer",
@@ -317,8 +322,13 @@
                             "above or at threshold"
                         ],
                         [
-                            "send_bit",
+                            "load_imm",
+                            3,
                             1
+                        ],
+                        [
+                            "send_bit",
+                            3
                         ],
                         [
                             "set_timer",
@@ -332,15 +342,93 @@
         {
             "id": "receiver_processing_0",
             "transitions": {
+                "init": [
+                    [
+                        "sequence",
+                        [
+                            "send_str_log",
+                            "Received: "
+                        ],
+                        [
+                            "_comment",
+                            "Store remaining bits in register 0"
+                        ],
+                        [
+                            "load_imm",
+                            0,
+                            24
+                        ]
+                    ],
+                    "receiver_processing_1"
+                ]
+            }
+        },
+        {
+            "id": "receiver_processing_1",
+            "transitions": {
                 "on_recv_bit": [
                     [
                         "sequence",
                         [
                             "send_int_log",
                             7
+                        ],
+                        [
+                            "_comment",
+                            "Use register 1 as scratch"
+                        ],
+                        [
+                            "load_imm",
+                            1,
+                            1
+                        ],
+                        [
+                            "sub",
+                            0,
+                            0,
+                            1
+                        ],
+                        [
+                            "load_imm",
+                            1,
+                            0
+                        ],
+                        [
+                            "compare",
+                            0,
+                            1
                         ]
                     ],
-                    "receiver_processing_0"
+                    "receiver_processing_2"
+                ]
+            }
+        },
+        {
+            "id": "receiver_processing_2",
+            "transitions": {
+                "eq": [
+                    [
+                        "sequence",
+                        [
+                            "_comment",
+                            "Exit"
+                        ],
+                        [
+                            "send_str_log",
+                            "\n"
+                        ]
+                    ],
+                    "EMPTY"
+                ],
+                "gt": [
+                    [
+                        "sequence",
+                        [
+                            "_comment",
+                            "Keep going"
+                        ]
+                    ],
+                    "receiver_processing_1"
                 ]
             }
         },
