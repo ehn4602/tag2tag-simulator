@@ -312,9 +312,7 @@ def load_states(
         return None
 
 
-def load_txt(
-    filepath: str, app_state: AppState, serializer: StateSerializer, logger: Logger
-):
+def load_txt(filepath: str, app_state: AppState, serializer: StateSerializer):
     """
     Loads arguments via a text file. Format is the same as command line arguments.
 
