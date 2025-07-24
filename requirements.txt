@@ -8,3 +8,4 @@ platformdirs==4.3.8
 scipy==1.16.0
 simpy==4.1.1
 python-json-logger==3.3.0
+matplotlib==3.10.3
