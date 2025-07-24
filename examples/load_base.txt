@@ -1,0 +1,3 @@
+--load ./examples/state_base_demo.json
+--load ./examples/event_base_demo.json
+--load ./examples/config_base_demo.json

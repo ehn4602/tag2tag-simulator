@@ -4,19 +4,20 @@
         {
             "event_type": "tag_set_mode",
             "time": 100,
-            "tag": "jupiter",
+            "tag": "Sender",
             "mode": "transmit",
-            "transmission": "1010101"
+            "reflection_index": 1
         },
         {
             "event_type": "tag_set_mode",
             "time": 123,
-            "tag": "neptune"
+            "mode": "listen",
+            "tag": "Receiver"
         },
         {
             "event_type": "tag_set_mode",
             "time": 234,
-            "tag": "uranus",
+            "tag": "Sender",
             "mode": "listen"
         }
     ]

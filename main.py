@@ -403,6 +403,16 @@ def load_txt(
                             states_output = load_states(raw_data, serializer, default)
                             if states_output is not None:
                                 default = states_output
+                        elif raw_data.get("Format") == "events":
+                            events: List[Event] = load_events(raw_data.get("Events"))
+                        elif raw_data.get("Format") == "config":
+                            exciter, objects, _, default = load_json(  # loads configs
+                                info[1],
+                                serializer,
+                                app_state=app_state,
+                                logger=logger,
+                            )
+
                         else:
                             print("Skipping! invalid format:", info[1])
             print(filepath, "successfully loaded")
@@ -464,13 +474,13 @@ def main():
     ## TODO give tags their approriate tagmodes
 
     logger, q_listener = init_logger(logging.INFO)
-    load_json(STATE_PATH, serializer)
+    load_json(STATE_PATH, serializer)  # loads states
 
-    main_exciter, objects, events, default = load_json(
+    main_exciter, objects, events, default = load_json(  # loads configs
         CONFIG_PATH, serializer, app_state=app_state, logger=logger
     )
 
-    _, _, events, _ = load_json(EVENT_PATH, serializer)
+    _, _, events, _ = load_json(EVENT_PATH, serializer)  # loads events
 
     machine_id_keys = [
         "input_machine_id",
@@ -495,7 +505,7 @@ def main():
                 events = list(heapq.merge(events, add_events, key=lambda x: x[0]))
             else:  # overwrites previouse saved data
                 temp_exciter, objects, events, default = load_txt(
-                    args.load, app_state, serializer
+                    args.load, app_state, serializer, logger
                 )
             if temp_exciter is not None:
                 main_exciter = temp_exciter
