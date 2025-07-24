@@ -152,13 +152,10 @@ def save_config(
         )
     with open(EVENT_PATH, "w") as f:
         json.dump(
-            {"Format": "events", "Events": [e.to_dict() for e in events]},
-            f,
-            indent=4,
-        )
-    with open(EVENT_PATH, "w") as f:
-        json.dump(
-            {"Format": "events", "Events": [e.to_dict() for e in events]},
+            {
+                "Format": "events",
+                "Events": [e.to_dict() for e in events] if events is not None else [],
+            },
             f,
             indent=4,
         )
@@ -261,6 +258,11 @@ def parse_args() -> argparse.Namespace:
         "--add",
         action="store_true",
         help="makes loading add onto the existing data rather than overwriting",
+    )
+    parser.add_argument(
+        "--run",
+        action="store_true",
+        help="runs the simulation after all other arguments",
     )
 
     return parser.parse_args()
@@ -493,13 +495,17 @@ def main():
                 events = list(heapq.merge(events, add_events, key=lambda x: x[0]))
             else:  # overwrites previouse saved data
                 temp_exciter, objects, events, default = load_txt(
-                    args.load, app_state, serializer, logger
+                    args.load, app_state, serializer
                 )
             if temp_exciter is not None:
                 main_exciter = temp_exciter
         elif file_type == "json":
             temp_exciter, temp_objects, temp_events, temp_default = load_json(
-                args.load, serializer, default=default
+                args.load,
+                serializer,
+                default=default,
+                app_state=app_state,
+                logger=logger,
             )
             if temp_objects is not None or temp_events is not None:
                 objects = temp_objects
@@ -605,8 +611,10 @@ def main():
     save_config(main_exciter, objects, events, default, serializer)
     q_listener.stop()
 
-    # TODO: run only if there was no arguments passed in cmd
-    run_simulation(app_state, main_exciter, objects, events, default)
+    if len(sys.argv) == 1:
+        run_simulation(app_state, main_exciter, objects, events, default)
+    elif args.run:
+        run_simulation(app_state, main_exciter, objects, events, default)
 
 
 if __name__ == "__main__":

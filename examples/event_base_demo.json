@@ -1,0 +1,23 @@
+{
+    "Format": "events",
+    "Events": [
+        {
+            "event_type": "tag_set_mode",
+            "time": 100,
+            "tag": "jupiter",
+            "mode": "transmit",
+            "transmission": "1010101"
+        },
+        {
+            "event_type": "tag_set_mode",
+            "time": 123,
+            "tag": "neptune"
+        },
+        {
+            "event_type": "tag_set_mode",
+            "time": 234,
+            "tag": "uranus",
+            "mode": "listen"
+        }
+    ]
+}

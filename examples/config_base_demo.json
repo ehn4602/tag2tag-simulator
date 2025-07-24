@@ -1,0 +1,49 @@
+{
+    "Format": "config",
+    "Default": {
+        "exciter_power": 50.0,
+        "gain": 0,
+        "impedance": 50.0,
+        "frequency": 1000000,
+        "input_machine_id": "A",
+        "proccessing_machine_id": "A",
+        "output_machine_id": "B",
+        "reflection_coefficients": [
+            0,
+            0,
+            1
+        ]
+    },
+    "Exciter": {
+        "id": "default",
+        "x": 10.0,
+        "y": 10.0,
+        "z": 10.0,
+        "power": 1,
+        "gain": 100,
+        "impedance": 50.0,
+        "frequency": 1000000
+    },
+    "Objects": {
+        "Sender": {
+            "tag_machine": {
+                "input_machine": "EMPTY",
+                "processing_machine": "sender_processing_0",
+                "output_machine": "sender_output_0"
+            },
+            "x": 2.0,
+            "y": 2.0,
+            "z": 2.0
+        },
+        "Receiver": {
+            "tag_machine": {
+                "input_machine": "receiver_input_0",
+                "processing_machine": "receiver_processing_0",
+                "output_machine": "receiver_output_0"
+            },
+            "x": 0.0,
+            "y": 8.0,
+            "z": 3.0
+        }
+    }
+}
