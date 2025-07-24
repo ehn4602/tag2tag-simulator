@@ -442,7 +442,7 @@ def main():
     load_json(STATE_PATH, serializer)
 
     main_exciter, objects, events, default = load_json(  # loads configs
-        CONFIG_PATH, serializer, app_state=app_state, logger=logger
+        CONFIG_PATH, serializer, app_state=app_state
     )
 
     _, _, events, _ = load_json(EVENT_PATH, serializer)  # loads events
@@ -476,7 +476,6 @@ def main():
                 serializer,
                 default=default,
                 app_state=app_state,
-                logger=logger,
             )
             if temp_objects is not None or temp_events is not None:
                 objects = temp_objects
@@ -580,11 +579,6 @@ def main():
         events.insert(position, new_event)
 
     save_config(main_exciter, objects, events, default, serializer)
-
-    if len(sys.argv) == 1:
-        run_simulation(app_state, main_exciter, objects, events, default)
-    elif args.run:
-        run_simulation(app_state, main_exciter, objects, events, default)
 
     if len(sys.argv) == 1:
         run_simulation(app_state, main_exciter, objects, events, default)

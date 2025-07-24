@@ -1,0 +1,31 @@
+load ./config/states.json
+default impedance 50
+default gain 0
+default frequency 1000000
+default exciter_power 1
+default proccessing receiver_processing_0
+default input receiver_input_0
+default output receiver_output_0
+exciter 0 0 0 
+tag R_01 1 0 0
+tag R_02 2 0 0
+tag R_03 3 0 0
+tag R_04 4 0 0
+tag R_05 5 0 0
+tag R_06 6 0 0
+tag R_07 7 0 0
+tag R_08 8 0 0
+tag R_09 9 0 0
+tag R_10 10 0 0
+tag R_11 11 0 0
+tag R_12 12 0 0
+tag R_13 13 0 0
+tag R_14 14 0 0
+tag R_15 15 0 0
+tag R_16 16 0 0
+tag R_17 17 0 0
+tag R_18 18 0 0
+tag R_19 19 0 0
+tag R_20 20 0 0
+
+

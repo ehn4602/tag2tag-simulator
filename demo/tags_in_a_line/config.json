@@ -1,0 +1,340 @@
+{
+    "Format": "config",
+    "Default": {
+        "exciter_power": 1.0,
+        "gain": 0,
+        "impedance": 50.0,
+        "frequency": 1000000.0,
+        "input_machine_id": "receiver_input_0",
+        "proccessing_machine_id": "receiver_processing_0",
+        "output_machine_id": "receiver_output_0",
+        "reflection_coefficients": [0, 0, 1]
+    },
+    "Exciter": {
+        "id": "default",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "power": 1.0,
+        "gain": 100.0,
+        "impedance": 50.0,
+        "frequency": 1000000.0
+    },
+    "Objects": {
+        "Sender": {
+            "tag_machine": {
+                "input_machine": "EMPTY",
+                "processing_machine": "sender_processing_0",
+                "output_machine": "sender_output_0"
+            },
+            "x": 2.0,
+            "y": 2.0,
+            "z": 2.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "frequency": 1000000.0,
+            "reflection_coefficients": [0, 0, 1]
+        },
+        "R_01": {
+            "tag_machine": {
+                "input_machine": "receiver_input_0",
+                "processing_machine": "receiver_processing_0",
+                "output_machine": "receiver_output_0"
+            },
+            "x": 1.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "frequency": 1000000.0,
+            "reflection_coefficients": [0, 0, 1]
+        },
+        "R_02": {
+            "tag_machine": {
+                "input_machine": "receiver_input_0",
+                "processing_machine": "receiver_processing_0",
+                "output_machine": "receiver_output_0"
+            },
+            "x": 2.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "frequency": 1000000.0,
+            "reflection_coefficients": [0, 0, 1]
+        },
+        "R_03": {
+            "tag_machine": {
+                "input_machine": "receiver_input_0",
+                "processing_machine": "receiver_processing_0",
+                "output_machine": "receiver_output_0"
+            },
+            "x": 3.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "frequency": 1000000.0,
+            "reflection_coefficients": [0, 0, 1]
+        },
+        "R_04": {
+            "tag_machine": {
+                "input_machine": "receiver_input_0",
+                "processing_machine": "receiver_processing_0",
+                "output_machine": "receiver_output_0"
+            },
+            "x": 4.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "frequency": 1000000.0,
+            "reflection_coefficients": [0, 0, 1]
+        },
+        "R_05": {
+            "tag_machine": {
+                "input_machine": "receiver_input_0",
+                "processing_machine": "receiver_processing_0",
+                "output_machine": "receiver_output_0"
+            },
+            "x": 5.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "frequency": 1000000.0,
+            "reflection_coefficients": [0, 0, 1]
+        },
+        "R_06": {
+            "tag_machine": {
+                "input_machine": "receiver_input_0",
+                "processing_machine": "receiver_processing_0",
+                "output_machine": "receiver_output_0"
+            },
+            "x": 6.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "frequency": 1000000.0,
+            "reflection_coefficients": [0, 0, 1]
+        },
+        "R_07": {
+            "tag_machine": {
+                "input_machine": "receiver_input_0",
+                "processing_machine": "receiver_processing_0",
+                "output_machine": "receiver_output_0"
+            },
+            "x": 7.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "frequency": 1000000.0,
+            "reflection_coefficients": [0, 0, 1]
+        },
+        "R_08": {
+            "tag_machine": {
+                "input_machine": "receiver_input_0",
+                "processing_machine": "receiver_processing_0",
+                "output_machine": "receiver_output_0"
+            },
+            "x": 8.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "frequency": 1000000.0,
+            "reflection_coefficients": [0, 0, 1]
+        },
+        "R_09": {
+            "tag_machine": {
+                "input_machine": "receiver_input_0",
+                "processing_machine": "receiver_processing_0",
+                "output_machine": "receiver_output_0"
+            },
+            "x": 9.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "frequency": 1000000.0,
+            "reflection_coefficients": [0, 0, 1]
+        },
+        "R_10": {
+            "tag_machine": {
+                "input_machine": "receiver_input_0",
+                "processing_machine": "receiver_processing_0",
+                "output_machine": "receiver_output_0"
+            },
+            "x": 10.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "frequency": 1000000.0,
+            "reflection_coefficients": [0, 0, 1]
+        },
+        "R_11": {
+            "tag_machine": {
+                "input_machine": "receiver_input_0",
+                "processing_machine": "receiver_processing_0",
+                "output_machine": "receiver_output_0"
+            },
+            "x": 11.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "frequency": 1000000.0,
+            "reflection_coefficients": [0, 0, 1]
+        },
+        "R_12": {
+            "tag_machine": {
+                "input_machine": "receiver_input_0",
+                "processing_machine": "receiver_processing_0",
+                "output_machine": "receiver_output_0"
+            },
+            "x": 12.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "frequency": 1000000.0,
+            "reflection_coefficients": [0, 0, 1]
+        },
+        "R_13": {
+            "tag_machine": {
+                "input_machine": "receiver_input_0",
+                "processing_machine": "receiver_processing_0",
+                "output_machine": "receiver_output_0"
+            },
+            "x": 13.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "frequency": 1000000.0,
+            "reflection_coefficients": [0, 0, 1]
+        },
+        "R_14": {
+            "tag_machine": {
+                "input_machine": "receiver_input_0",
+                "processing_machine": "receiver_processing_0",
+                "output_machine": "receiver_output_0"
+            },
+            "x": 14.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "frequency": 1000000.0,
+            "reflection_coefficients": [0, 0, 1]
+        },
+        "R_15": {
+            "tag_machine": {
+                "input_machine": "receiver_input_0",
+                "processing_machine": "receiver_processing_0",
+                "output_machine": "receiver_output_0"
+            },
+            "x": 15.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "frequency": 1000000.0,
+            "reflection_coefficients": [0, 0, 1]
+        },
+        "R_16": {
+            "tag_machine": {
+                "input_machine": "receiver_input_0",
+                "processing_machine": "receiver_processing_0",
+                "output_machine": "receiver_output_0"
+            },
+            "x": 16.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "frequency": 1000000.0,
+            "reflection_coefficients": [0, 0, 1]
+        },
+        "R_17": {
+            "tag_machine": {
+                "input_machine": "receiver_input_0",
+                "processing_machine": "receiver_processing_0",
+                "output_machine": "receiver_output_0"
+            },
+            "x": 17.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "frequency": 1000000.0,
+            "reflection_coefficients": [0, 0, 1]
+        },
+        "R_18": {
+            "tag_machine": {
+                "input_machine": "receiver_input_0",
+                "processing_machine": "receiver_processing_0",
+                "output_machine": "receiver_output_0"
+            },
+            "x": 18.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "frequency": 1000000.0,
+            "reflection_coefficients": [0, 0, 1]
+        },
+        "R_19": {
+            "tag_machine": {
+                "input_machine": "receiver_input_0",
+                "processing_machine": "receiver_processing_0",
+                "output_machine": "receiver_output_0"
+            },
+            "x": 19.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "frequency": 1000000.0,
+            "reflection_coefficients": [0, 0, 1]
+        },
+        "R_20": {
+            "tag_machine": {
+                "input_machine": "receiver_input_0",
+                "processing_machine": "receiver_processing_0",
+                "output_machine": "receiver_output_0"
+            },
+            "x": 20.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "frequency": 1000000.0,
+            "reflection_coefficients": [0, 0, 1]
+        }
+    }
+}
