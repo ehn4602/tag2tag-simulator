@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional, Self, Dict, Any, Union, TYPE_CHECKING
+from typing import Optional, Self, Any, Union, TYPE_CHECKING
 from abc import ABC, abstractmethod
 import logging
 from logging import Logger
@@ -10,6 +10,7 @@ from simpy.core import SimTime
 from simpy import Interrupt
 
 from state import AppState
+from util.app_logger import init_machine_logger
 from util.types import StateMethod
 
 if TYPE_CHECKING:
@@ -89,7 +90,7 @@ class TimerScheduler:
             app_state (AppState): The app state.
         """
         self.app_state = app_state
-        self.timers: List[Timer] = []
+        self.timers: list[Timer] = []
         self.next_run: Optional[int] = None
         self.process = self.app_state.env.process(self.run())
 
@@ -148,6 +149,7 @@ class TimerAcceptor(ABC):
         self._scheduler = timer
         self._last_timer: Optional[Timer] = None
 
+    # TODO remove this method?
     def set_timer(self, delay: int):
         """
         Schedules a delayed callback. If the delay is 0, cancel the last callback instead.
@@ -387,15 +389,12 @@ class MachineLogger:
     Logging interface used to buffer logs from state machines
     """
 
-    def __init__(self, logger: Logger):
+    def __init__(self):
         """
         Create a MachineLogger.
-
-        Args:
-            logger (Logger): Logger to forward buffered logging to.
         """
         self.store = ""
-        self.logger = logger
+        self.logger: logging.LoggerAdapter
 
     def log(self, s: str):
         """
@@ -407,11 +406,21 @@ class MachineLogger:
         """
         newline_index = s.find("\n")
         while newline_index != -1:
-            self.logger.info(self.store + s[:newline_index])
+            msg = self.store + s[:newline_index]
+            self.logger.info(msg, extra={"action": "write_output"})
             self.store = ""
             s = s[newline_index + 1 :]
             newline_index = s.find("\n")
         self.store += s
+
+    def set_logger(self, logger: logging.LoggerAdapter):
+        """
+        Sets the logger to forward buffered logging to.
+
+        Args:
+            logger (Logger): Logger to forward buffered logging to.
+        """
+        self.logger = init_machine_logger(logger)
 
 
 class ExecuteMachine(StateMachine, TimerAcceptor):
@@ -430,8 +439,11 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
         """
         super().__init__(init_state)
         self.tag_machine = tag_machine
-        self.transition_queue: Optional[List[str]] = None
-        self.registers: List[int | float] = [0 for _ in range(8)]
+        self.transition_queue: Optional[list[str]] = None
+        self.registers: list[int | float] = [0 for _ in range(8)]
+
+    def logger(self) -> logging.LoggerAdapter:
+        return self.tag_machine.tag.logger
 
     def _cmd(self, cmd_first: str, cmd_rest: list[StateMethod]):
         """
@@ -442,12 +454,6 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
             cmd_rest (list[StateMethod]): Command arguments.
         """
         method_name = "_cmd_" + cmd_first
-
-        # TODO: Convert to debug logging
-        tag_name = self.tag_machine.tag.get_name()
-        arguments = ",".join([str(arg) for arg in cmd_rest])
-        logging.info(f"[{tag_name}] {method_name}({arguments})")
-
         getattr(self, method_name)(*cmd_rest)
 
     def _cmd_mov(self, dst: int, src: int):
@@ -458,7 +464,17 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
             dst (int): Destination register.
             src (int): Source register.
         """
-        self.registers[dst] = self.registers[src]
+        value = self.registers[src]
+        self.registers[dst] = value
+        self.logger().debug(
+            "cmd_mov(%s,%(src)s): reg[%s] = reg[%(src)s]: %s",
+            dst,
+            src,
+            dst,
+            src,
+            value,
+            extra={"dst": dst, "src": src, "value": value},
+        )
 
     def _cmd_load_imm(self, dst: int, val: Union[int, float]):
         """
@@ -469,6 +485,14 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
             src (Union[int, float]): Immediate value.
         """
         self.registers[dst] = val
+        self.logger().debug(
+            "cmd_load_imm(%s,%s): reg[%s] = %s",
+            dst,
+            val,
+            dst,
+            val,
+            extra={"dst": dst, "value": val},
+        )
 
     def _cmd_sub(self, dst: int, a: int, b: int):
         """
@@ -479,7 +503,18 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
             a (int): First operand register.
             b (int): Second operand register.
         """
-        self.registers[dst] = self.registers[a] - self.registers[b]
+        value = self.registers[dst] = self.registers[a] - self.registers[b]
+        self.logger().debug(
+            "cmd_sub(%s,%s,%s): reg[%s] = reg[%s] - reg[%s]: %s",
+            dst,
+            a,
+            b,
+            dst,
+            a,
+            b,
+            value,
+            extra={"dst": dst, "a": a, "b": b, "value": value},
+        )
 
     def _cmd_add(self, dst: int, a: int, b: int):
         """
@@ -490,7 +525,18 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
             a (int): First operand register.
             b (int): Second operand register.
         """
-        self.registers[dst] = self.registers[a] + self.registers[b]
+        value = self.registers[dst] = self.registers[a] + self.registers[b]
+        self.logger().debug(
+            "cmd_add(%s,%s,%s): reg[%s] = reg[%s] + reg[%s]: %s",
+            dst,
+            a,
+            b,
+            dst,
+            a,
+            b,
+            value,
+            extra={"dst": dst, "a": a, "b": b, "value": value},
+        )
 
     def _cmd_floor(self, a: int):
         """
@@ -499,7 +545,14 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
         Args:
             a (int): Register used for both input and output.
         """
-        self.registers[a] = int(self.registers[a])
+        value = self.registers[a] = int(self.registers[a])
+        self.logger().debug(
+            "cmd_floor(%s): floor(reg[%s]): %s",
+            a,
+            a,
+            value,
+            extra={"a": a, "value": value},
+        )
 
     def _cmd_abs(self, a: int):
         """
@@ -508,7 +561,14 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
         Args:
             a (int): Register used for both input and output.
         """
-        self.registers[a] = abs(self.registers[a])
+        value = self.registers[a] = abs(self.registers[a])
+        self.logger().debug(
+            "cmd_abs(%s): abs(reg[%s]): %s",
+            a,
+            a,
+            value,
+            extra={"a": a, "value": value},
+        )
 
     def _cmd_compare(self, a, b):
         """
@@ -529,6 +589,15 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
         else:
             sym = "gt"
         self._accept_symbol(sym)
+        self.logger().debug(
+            "cmd_compare(%s,%s): comp(reg[%s], reg[%s]): %s",
+            a,
+            b,
+            a,
+            b,
+            sym,
+            extra={"a": a, "b": b, "value": sym},
+        )
 
     def _cmd__comment(self, *comment_lines: Any):
         """
@@ -558,6 +627,11 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
             symbol (str): Symbol to send.
         """
         self._accept_symbol(symbol)
+        self.logger().debug(
+            "cmd_self_trigger(%s)",
+            symbol,
+            extra={"symbol": symbol},
+        )
 
     def _cmd_set_timer(self, timer_reg: int):
         """
@@ -566,7 +640,14 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
         Args:
             timer_reg (int): Input register for the timer delay in SimPy ticks.
         """
-        self.tag_machine.timer.set_timer(self, self.registers[timer_reg])
+        delay = self.registers[timer_reg]
+        self.tag_machine.timer.set_timer(self, delay)
+        self.logger().debug(
+            "cmd_set_timer(%s): set timer to %s",
+            timer_reg,
+            delay,
+            extra={"timer_reg": timer_reg, "delay": delay},
+        )
 
     def prepare(self):
         """
@@ -625,7 +706,14 @@ class InputMachine(ExecuteMachine):
         Args:
             out_reg (int): Output register.
         """
-        self.registers[out_reg] = self.tag_machine.tag.read_voltage()
+        voltage = self.registers[out_reg] = self.tag_machine.tag.read_voltage()
+        self.logger().debug(
+            "cmd_save_voltage(%s): reg[%s] = %s",
+            out_reg,
+            out_reg,
+            voltage,
+            extra={"out_reg": out_reg, "voltage": voltage},
+        )
 
     def _cmd_send_bit(self, reg: int):
         """
@@ -707,7 +795,7 @@ class ProcessingMachine(ExecuteMachine):
         Args:
             reg (int): Input register.
         """
-        self.tag_machine.logger.log(str(self.registers[reg]))
+        self.tag_machine.machine_logger.log(str(self.registers[reg]))
 
     def _cmd_send_str_log(self, s: str):
         """
@@ -716,7 +804,7 @@ class ProcessingMachine(ExecuteMachine):
         Args:
             reg (int): Input register.
         """
-        self.tag_machine.logger.log(s)
+        self.tag_machine.machine_logger.log(s)
 
     def _cmd_store_mem_imm(self, reg_addr: int, imm: Union[tuple[int,], int]):
         """
@@ -767,7 +855,8 @@ class OutputMachine(ExecuteMachine, TimerAcceptor):
         Args:
             reg (int): Register containing the antenna index.
         """
-        self.tag_machine.tag.set_mode_reflect(self.registers[reg])
+        reflection_index = self.registers[reg]
+        self.tag_machine.tag.set_mode_reflect(reflection_index)
 
     def _cmd_set_listen(self):
         """
@@ -801,7 +890,6 @@ class TagMachine:
         self,
         app_state: AppState,
         init_states: tuple[State, State, State],
-        logger: Logger,
     ):
         """
         Creates a TagMachine.
@@ -809,10 +897,9 @@ class TagMachine:
         Args:
             app_state (AppState): The app state.
             init_states (tuple[State, State, State]): The initial states for each state machine.
-            logger (Logger): The logger.
         """
         self.timer = TimerScheduler(app_state)
-        self.logger = MachineLogger(logger)
+        self.machine_logger = MachineLogger()
         self.input_machine = InputMachine(self, init_states[0])
         self.processing_machine = ProcessingMachine(self, init_states[1])
         self.output_machine = OutputMachine(self, init_states[2])
@@ -826,6 +913,7 @@ class TagMachine:
             tag (Tag): The associated Tag.
         """
         self.tag = tag
+        self.machine_logger.set_logger(tag.logger)
 
     def prepare(self):
         """
@@ -848,7 +936,7 @@ class TagMachine:
 
     @classmethod
     def from_dict(
-        cls, app_state: AppState, logger: Logger, data, serializer: StateSerializer
+        cls, app_state: AppState, data, serializer: StateSerializer
     ) -> TagMachine:
         """
         Creates a tag machine from a JSON input
@@ -869,5 +957,4 @@ class TagMachine:
                 State.from_dict(data["processing_machine"], serializer),
                 State.from_dict(data["output_machine"], serializer),
             ),
-            logger,
         )

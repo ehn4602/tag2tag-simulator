@@ -1,9 +1,11 @@
 from __future__ import annotations
+from typing import Optional, Self, Any
 
-from typing import List, Optional, Self, Any
+import logging
 
 from state import AppState
 from tags.state_machine import TagMachine
+from util.app_logger import init_tag_logger
 from util.types import Position
 
 
@@ -40,6 +42,14 @@ class TagMode:
             index (int): Returns the antenna index associated with this mode.
         """
         return self._index
+
+    def log_extra(self) -> dict:
+        if self.is_listening():
+            return {"is_listening": True}
+        return {
+            "is_listening": False,
+            "reflection_index": self.get_reflection_index(),
+        }
 
     def from_data(mode_str: str, reflection_index: Optional[int]) -> Self:
         mode_str = mode_str.upper()
@@ -234,6 +244,7 @@ class Tag(PhysicsObject):
         self.tag_machine = tag_machine
         self.mode = mode
         self.reflection_coefficients = reflection_coefficients
+        self.logger: logging.LoggerAdapter = init_tag_logger(self)
 
     def __str__(self):
         return f"Tag={{{self.name}}}"
@@ -246,6 +257,13 @@ class Tag(PhysicsObject):
 
     def set_mode(self, tag_mode: TagMode):
         self.mode = tag_mode
+
+        msg: str
+        if self.mode.is_listening():
+            msg = "Set mode to LISTENING"
+        else:
+            msg = f"Set mode to REFLECT with index {self.mode.get_reflection_index()}"
+        self.logger.info(msg, extra={"mode": self.mode.log_extra()})
 
     def set_mode_listen(self):
         self.set_mode(TagMode.LISTENING)
@@ -262,22 +280,33 @@ class Tag(PhysicsObject):
 
     def read_voltage(self) -> float:
         tag_manager = self.app_state.tag_manager
-        return tag_manager.get_received_voltage(self)
+        voltage = tag_manager.get_received_voltage(self)
+        self.logger.info(
+            f"Read voltage: {voltage}",
+            extra={"voltage": voltage},
+        )
+        return voltage
 
     def to_dict(self):
         """For placing tags into dicts correctly on JSON"""
+
+        # TODO what if self.power was set to default?
         return {
             "tag_machine": self.tag_machine.to_dict(),
             "x": self.pos[0],
             "y": self.pos[1],
             "z": self.pos[2],
+            "power": self.power,
+            "gain": self.gain,
+            "impedance": self.impedance,
+            "frequency": self.frequency,
+            "reflection_coefficients": self.reflection_coefficients,
         }
 
     @classmethod
     def from_dict(
         cls,
         app_state: AppState,
-        logger,
         name: str,
         data: dict,
         serializer,
@@ -290,15 +319,13 @@ class Tag(PhysicsObject):
             env (Environment): SimPy environment
             tag_manager (TagManager): Tag manager
             logger:
-            name (string): Unique name for tag
+            name (str): Unique name for tag
             data (list): list of Coordinates
 
         Returns:
             tag: returns tag loaded from JSON
         """
-        tag_machine = TagMachine.from_dict(
-            app_state, logger, data["tag_machine"], serializer
-        )
+        tag_machine = TagMachine.from_dict(app_state, data["tag_machine"], serializer)
         tag = cls(
             app_state,
             name,

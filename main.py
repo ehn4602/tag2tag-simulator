@@ -1,14 +1,10 @@
 import argparse
 import bisect
-from datetime import datetime
 import heapq
 import json
 import logging
 import os
-import queue
 import sys
-from logging.handlers import QueueHandler, QueueListener
-from pathlib import Path
 from typing import Optional
 
 from event.load_events import load_event, load_events, sort_events
@@ -16,6 +12,7 @@ from manager.run_program import run_simulation
 from tags.tag import *
 from tags.state_machine import *
 from event.base_event import *
+from util.app_logger import init_logger
 
 CONFIG_PATH = "./config/config.json"
 STATE_PATH = "./config/states.json"
@@ -36,8 +33,6 @@ DEFAULT_STATS = {
 def load_json(
     file_input: str,
     serializer: StateSerializer,
-    # timer: Optional[TimerScheduler] = None,
-    logger: Optional[logging.Logger] = None,
     app_state: Optional[AppState] = None,
     default: Optional[dict] = None,
 ):
@@ -81,7 +76,7 @@ def load_json(
             else:
                 exciter = default_exciter
             tags = {
-                id: Tag.from_dict(app_state, logger, id, val, serializer, default)
+                id: Tag.from_dict(app_state, id, val, serializer, default)
                 for id, val in raw_objects.items()
             }
             return exciter, tags, None, default
@@ -90,7 +85,7 @@ def load_json(
             if state_output is not None:
                 return None, None, None, state_output
         elif format == "events":
-            events: List[Event] = load_events(raw_data.get("Events"))
+            events: list[Event] = load_events(raw_data.get("Events"))
             return None, None, events, None
         else:
             print("error: invalid JSON format")
@@ -265,6 +260,19 @@ def parse_args() -> argparse.Namespace:
         help="runs the simulation after all other arguments",
     )
 
+    LOG_LEVELS = {
+        "ERROR": logging.ERROR,
+        "WARNING": logging.WARNING,
+        "INFO": logging.INFO,
+        "DEBUG": logging.DEBUG,
+    }
+    parser.add_argument(
+        "--loglevel",
+        type=str.upper,
+        choices=LOG_LEVELS.keys(),
+        default="INFO",
+        help="Set the logging level (default: INFO)",
+    )
     return parser.parse_args()
 
 
@@ -308,7 +316,6 @@ def load_txt(
     filepath: str,
     app_state: AppState,
     serializer: StateSerializer,
-    logger: logging.Logger,
 ):
     """
     Loads arguments via a text file. Format is the same as command line arguments.
@@ -348,7 +355,7 @@ def load_txt(
                     init_states.append(
                         serializer.get_state(default.get("output_machine_id"))
                     )
-                    tagmachine = TagMachine(app_state, init_states, logger)
+                    tagmachine = TagMachine(app_state, init_states)
                     tag = Tag(
                         app_state,
                         info[1],
@@ -419,50 +426,6 @@ def load_txt(
             return exciter, objects, events, default
 
 
-def init_logger(
-    level, filename: str = "tagsim.log", stdout: bool = False
-) -> tuple[logging.Logger, QueueListener]:
-    """
-    Initializes a logger that can be used throughout the program.
-
-    Arguments:
-        level: The logging level to log at.
-        filename (str): Name of the file where the log is to be stored, tagsim.log in
-        PWD by default.
-        stdout (bool): Whether or not to print Log to stdout. False by default.
-
-    Returns:
-        logger, queue_listener (tuple[logging.Logger, QueueListener]): Logger objects.
-    """
-    log_queue = queue.Queue()
-    qh = QueueHandler(log_queue)
-
-    logger = logging.getLogger(__name__)
-    logging.basicConfig(
-        handlers=[qh],
-        format=f"%(asctime)s::%(levelname)s::{Path(__file__).name}: %(msg)s",
-        level=level,
-    )
-
-    block_handlers = []
-
-    directory = "logs"
-    filename = os.path.join(directory, filename)
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-    time_format = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
-    fhandle = logging.FileHandler(f"{filename}-{time_format}")
-    block_handlers.append(fhandle)
-
-    if stdout:
-        shandle = logging.StreamHandler()
-        block_handlers.append(shandle)
-
-    ql = QueueListener(log_queue, *block_handlers)
-    ql.start()
-    return logger, ql
-
-
 def main():
     """
     Main function, responsible for running the program.
@@ -471,10 +434,12 @@ def main():
 
     serializer = StateSerializer()
 
-    ## TODO give tags their approriate tagmodes
+    # TODO give tags their approriate tagmodes
+    args = parse_args()
 
-    logger, q_listener = init_logger(logging.INFO)
-    load_json(STATE_PATH, serializer)  # loads states
+    # TODO Change this to take in arguments from the command line
+    logger, q_listener = init_logger(app_state, args.loglevel, stdout=False)
+    load_json(STATE_PATH, serializer)
 
     main_exciter, objects, events, default = load_json(  # loads configs
         CONFIG_PATH, serializer, app_state=app_state, logger=logger
@@ -488,24 +453,20 @@ def main():
         "output_machine_id",
     ]
     machine_defined = not any(default[k] == "UNKNOWN" for k in machine_id_keys)
-    args = parse_args()
-
-    # TODO Change this to take in arguments from the command line
-    logger, q_listener = init_logger(logging.INFO)
 
     if args.load is not None:  # load in a file
         file_type = args.load.split(".")[-1]
         if file_type == "txt":
             if args.add:  # appends loaded arguments instead of overwrite
                 temp_exciter, add_objects, add_events, add_default = load_txt(
-                    args.load, app_state, serializer, logger
+                    args.load, app_state, serializer
                 )
                 objects.update(add_objects)
                 default.update(add_default)
                 events = list(heapq.merge(events, add_events, key=lambda x: x[0]))
             else:  # overwrites previouse saved data
                 temp_exciter, objects, events, default = load_txt(
-                    args.load, app_state, serializer, logger
+                    args.load, app_state, serializer
                 )
             if temp_exciter is not None:
                 main_exciter = temp_exciter
@@ -553,7 +514,7 @@ def main():
                 serializer.get_state(default.get("proccessing_machine_id"))
             )
             init_states.append(serializer.get_state(default.get("output_machine_id")))
-            tagmachine = TagMachine(app_state, init_states, logger)
+            tagmachine = TagMachine(app_state, init_states)
             new_obj = Tag(
                 app_state,
                 id,
@@ -619,12 +580,19 @@ def main():
         events.insert(position, new_event)
 
     save_config(main_exciter, objects, events, default, serializer)
-    q_listener.stop()
 
     if len(sys.argv) == 1:
         run_simulation(app_state, main_exciter, objects, events, default)
     elif args.run:
         run_simulation(app_state, main_exciter, objects, events, default)
+
+    if len(sys.argv) == 1:
+        run_simulation(app_state, main_exciter, objects, events, default)
+    elif args.run:
+        run_simulation(app_state, main_exciter, objects, events, default)
+
+    q_listener.stop()
+    logging.shutdown()
 
 
 if __name__ == "__main__":
