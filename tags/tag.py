@@ -1,5 +1,7 @@
+from __future__ import annotations
+from typing import Optional, Self, Any
+
 import logging
-from typing import Optional, Self
 
 from state import AppState
 from tags.state_machine import TagMachine
@@ -8,17 +10,37 @@ from util.types import Position
 
 
 class TagMode:
+    """
+    A mode which a tag's antenna can be in. This is a wrapper for an index
+    into a tag's antenna reflection coefficient table. It is assumed that 0
+    refers to a connection to the envelope detector, or "listening mode".
+    """
+
     _LISTENING_IDX = 0
 
     LISTENING: "TagMode"
 
     def __init__(self, index: int):
+        """
+        Initializes a TagMode
+
+        Args:
+            index (int): Antenna index.
+        """
         self._index = index
 
     def is_listening(self) -> bool:
+        """
+        Returns:
+            is_listening (bool): True if this tag mode refers to a listening configuration.
+        """
         return self._index == TagMode._LISTENING_IDX
 
     def get_reflection_index(self) -> int:
+        """
+        Returns:
+            index (int): Returns the antenna index associated with this mode.
+        """
         return self._index
 
     def log_extra(self) -> dict:
@@ -47,7 +69,8 @@ TagMode.LISTENING = TagMode(TagMode._LISTENING_IDX)
 
 class PhysicsObject:
     """
-    An object which interacts with the physics engine.
+    An object which interacts with the physics engine. Used as a base class
+    for Exciter and Tag.
     """
 
     def __init__(
@@ -60,6 +83,18 @@ class PhysicsObject:
         impedance: float,
         frequency: float,
     ):
+        """
+        Creates a PhysicsObject.
+
+        Args:
+            app_state (AppState): The AppState.
+            name (str): The name of this physics object.
+            pos (Position): The position of this physics object.
+            power (float): Power.
+            gain (float): Gain.
+            impedance (float): Impedance.
+            frequency (float): Frequency.
+        """
         self.app_state = app_state
         self.name = name
         self.pos = tuple([float(p) for p in pos])
@@ -68,27 +103,47 @@ class PhysicsObject:
         self.impedance = impedance
         self.frequency = frequency
 
-    def get_name(self):
+    def get_name(self) -> str:
+        """
+        Returns:
+            name (str): The name of this physics object.
+        """
         return self.name
 
     def get_position(self) -> Position:
         return self.pos
 
     def get_power(self):
+        """
+        Returns:
+            power (float): Power.
+        """
         return self.power
 
     def get_gain(self):
+        """
+        Returns:
+            gain (float): Gain.
+        """
         return self.gain
 
     def get_impedance(self):
+        """
+        Returns:
+            impedance (float): Impedance.
+        """
         return self.impedance
 
     def get_frequency(self):
+        """
+        Returns:
+            frequency (float): Frequency.
+        """
         return self.frequency
 
 
 class Exciter(PhysicsObject):
-    """Class for Exciters"""
+    """An exciter object, which transmits a signal backscattering tags can reflect"""
 
     def __init__(
         self,
@@ -100,10 +155,27 @@ class Exciter(PhysicsObject):
         impedance: float,
         frequency: float,
     ):
+        """
+        Creates a PhysicsObject.
+
+        Args:
+            app_state (AppState): The AppState.
+            name (str): The name of this exciter.
+            pos (Position): The position of this exciter.
+            power (float): Power.
+            gain (float): Gain.
+            impedance (float): Impedance.
+            frequency (float): Frequency.
+        """
         super().__init__(app_state, name, pos, power, gain, impedance, frequency)
 
-    def to_dict(self):
-        """For placing exciters from dicts correctly to JSON"""
+    def to_dict(self) -> Any:
+        """
+        Converts an exciter object into a form that can be stored as JSON
+
+        Returns:
+            out (Any): Data storable as JSON.
+        """
         return {
             "id": self.name,
             "x": self.pos[0],
@@ -116,7 +188,14 @@ class Exciter(PhysicsObject):
         }
 
     @classmethod
-    def from_dict(cls, app_state: AppState, data):
+    def from_dict(cls, app_state: AppState, data: Any) -> Exciter:
+        """
+        Converts data loaded from JSON into a new Exciter object.
+
+        Args:
+            app_state (AppState): The app state.
+            data (Any): Data loaded from JSON.
+        """
         return Exciter(
             app_state,
             data["id"],
@@ -129,7 +208,9 @@ class Exciter(PhysicsObject):
 
 
 class Tag(PhysicsObject):
-    """Class for Tags"""
+    """
+    An object representing a backscattering tag.
+    """
 
     def __init__(
         self,
@@ -144,6 +225,21 @@ class Tag(PhysicsObject):
         frequency: float,
         reflection_coefficients: list[float],
     ):
+        """
+        Creates a Tag.
+
+        Args:
+            app_state (AppState): The app state.
+            name (str): The name of this tag.
+            tag_machine (TagMachine): The TagMachine associated with this tag.
+            mode (TagMode): The initial mode this tag's antenna starts in.
+            pos (Position): The position of this tag.
+            power (float): Power.
+            gain (float): Gain.
+            impedance (float): Impedance.
+            frequency (float): Frequency.
+            reflection_coefficients (list[float]): A list that can be used to look up reflection coefficients by antenna index.
+        """
         super().__init__(app_state, name, pos, power, gain, impedance, frequency)
         self.tag_machine = tag_machine
         self.mode = mode
@@ -217,10 +313,14 @@ class Tag(PhysicsObject):
         serializer,
         default: dict,
     ):
-        """Creates a tag object from a JSON input
+        """
+        Creates a tag object from a JSON input
 
         Args:
-            name (string): Unique name for tag
+            env (Environment): SimPy environment
+            tag_manager (TagManager): Tag manager
+            logger:
+            name (str): Unique name for tag
             data (list): list of Coordinates
 
         Returns:

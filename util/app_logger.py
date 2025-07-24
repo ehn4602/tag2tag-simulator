@@ -46,15 +46,16 @@ def init_logger(
     stdout=False,
 ) -> tuple[logging.Logger, QueueListener]:
     """
-    Initializes a logger that can then be used throughout the program.
+    Initializes a logger that can be used throughout the program.
 
     Arguments:
-    level -- The logging level to log at
-    filename -- Name of the file where the log is to be stored, tagsim.log in
-                PWD by default.
-    stdout -- Whether or not to print Log to stdout. False by default.
+        level: The logging level to log at.
+        filename (str): Name of the file where the log is to be stored, tagsim.log in
+        PWD/logs by default.
+        stdout (bool): Whether or not to print Log to stdout. False by default.
 
-    Returns: The handle to the logger
+    Returns:
+        logger, queue_listener (tuple[logging.Logger, QueueListener]): Logger objects.
     """
     directory = "logs"
     base_filename = os.path.join(directory, base_filename)
