@@ -147,13 +147,10 @@ def save_config(
         )
     with open(EVENT_PATH, "w") as f:
         json.dump(
-            {"Format": "events", "Events": [e.to_dict() for e in events]},
-            f,
-            indent=4,
-        )
-    with open(EVENT_PATH, "w") as f:
-        json.dump(
-            {"Format": "events", "Events": [e.to_dict() for e in events]},
+            {
+                "Format": "events",
+                "Events": [e.to_dict() for e in events] if events is not None else [],
+            },
             f,
             indent=4,
         )
@@ -256,6 +253,11 @@ def parse_args() -> argparse.Namespace:
         "--add",
         action="store_true",
         help="makes loading add onto the existing data rather than overwriting",
+    )
+    parser.add_argument(
+        "--run",
+        action="store_true",
+        help="runs the simulation after all other arguments",
     )
 
     LOG_LEVELS = {
@@ -408,6 +410,16 @@ def load_txt(
                             states_output = load_states(raw_data, serializer, default)
                             if states_output is not None:
                                 default = states_output
+                        elif raw_data.get("Format") == "events":
+                            events: List[Event] = load_events(raw_data.get("Events"))
+                        elif raw_data.get("Format") == "config":
+                            exciter, objects, _, default = load_json(  # loads configs
+                                info[1],
+                                serializer,
+                                app_state=app_state,
+                                logger=logger,
+                            )
+
                         else:
                             print("Skipping! invalid format:", info[1])
             print(filepath, "successfully loaded")
@@ -429,11 +441,11 @@ def main():
     logger, q_listener = init_logger(app_state, args.loglevel, stdout=False)
     load_json(STATE_PATH, serializer)
 
-    main_exciter, objects, events, default = load_json(
-        CONFIG_PATH, serializer, app_state=app_state
+    main_exciter, objects, events, default = load_json(  # loads configs
+        CONFIG_PATH, serializer, app_state=app_state, logger=logger
     )
 
-    _, _, events, _ = load_json(EVENT_PATH, serializer)
+    _, _, events, _ = load_json(EVENT_PATH, serializer)  # loads events
 
     machine_id_keys = [
         "input_machine_id",
@@ -460,7 +472,11 @@ def main():
                 main_exciter = temp_exciter
         elif file_type == "json":
             temp_exciter, temp_objects, temp_events, temp_default = load_json(
-                args.load, serializer, default=default
+                args.load,
+                serializer,
+                default=default,
+                app_state=app_state,
+                logger=logger,
             )
             if temp_objects is not None or temp_events is not None:
                 objects = temp_objects
@@ -565,8 +581,15 @@ def main():
 
     save_config(main_exciter, objects, events, default, serializer)
 
-    # TODO: run only if there was no arguments passed in cmd
-    run_simulation(app_state, main_exciter, objects, events, default)
+    if len(sys.argv) == 1:
+        run_simulation(app_state, main_exciter, objects, events, default)
+    elif args.run:
+        run_simulation(app_state, main_exciter, objects, events, default)
+
+    if len(sys.argv) == 1:
+        run_simulation(app_state, main_exciter, objects, events, default)
+    elif args.run:
+        run_simulation(app_state, main_exciter, objects, events, default)
 
     q_listener.stop()
     logging.shutdown()
