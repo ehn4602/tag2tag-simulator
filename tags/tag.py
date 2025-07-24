@@ -307,7 +307,6 @@ class Tag(PhysicsObject):
     def from_dict(
         cls,
         app_state: AppState,
-        logger,
         name: str,
         data: dict,
         serializer,
@@ -326,9 +325,7 @@ class Tag(PhysicsObject):
         Returns:
             tag: returns tag loaded from JSON
         """
-        tag_machine = TagMachine.from_dict(
-            app_state, logger, data["tag_machine"], serializer
-        )
+        tag_machine = TagMachine.from_dict(app_state, data["tag_machine"], serializer)
         tag = cls(
             app_state,
             name,

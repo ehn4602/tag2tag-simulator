@@ -67,7 +67,7 @@ def init_logger(
 
     # Create formatters
     text_formatter = logging.Formatter(
-        fmt=f"t=%(simpy_time)s::%(levelname)s::{logger.name}: %(msg)s",
+        fmt=f"t=%(simpy_time)s::%(levelname)s::%(name)s: %(msg)s",
     )
     json_formatter = JsonFormatter(
         fmt="%(simpy_time)s %(levelname)s %(message)s",
@@ -108,14 +108,14 @@ def init_logger(
     return logger, ql
 
 
-class TagLoggerAdapter(logging.LoggerAdapter):
-    def __init__(self, logger, extra=None, merge_extra=False):
+class NamedLoggerAdapter(logging.LoggerAdapter):
+    def __init__(self, logger, prefix: str, extra=None, merge_extra=False):
         super().__init__(logger, extra, merge_extra)
-        self.tag_name = extra["tag"]
+        self.prefix = prefix
 
     def process(self, msg, kwargs):
         msg, kwargs = super().process(msg, kwargs)
-        return f"[Tag {self.tag_name}] {msg}", kwargs
+        return f"[{self.prefix}] {msg}", kwargs
 
 
 def init_tag_logger(tag: Tag) -> logging.LoggerAdapter:
@@ -129,4 +129,11 @@ def init_tag_logger(tag: Tag) -> logging.LoggerAdapter:
     """
     tag_logger = logging.getLogger(f"tag.{tag.name}")
     added_context = {"tag": tag.name}
-    return TagLoggerAdapter(tag_logger, extra=added_context, merge_extra=True)
+    prefix = f"Tag {tag.name}"
+    return NamedLoggerAdapter(tag_logger, prefix, extra=added_context, merge_extra=True)
+
+
+def init_machine_logger(parent: NamedLoggerAdapter) -> logging.LoggerAdapter:
+    logger = logging.getLogger(parent.name + ".output")
+    prefix = f"{parent.prefix} - Output"
+    return NamedLoggerAdapter(logger, prefix, dict(parent.extra), merge_extra=True)

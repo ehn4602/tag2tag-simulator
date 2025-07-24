@@ -33,8 +33,6 @@ DEFAULT_STATS = {
 def load_json(
     file_input: str,
     serializer: StateSerializer,
-    # timer: Optional[TimerScheduler] = None,
-    logger: Optional[logging.Logger] = None,
     app_state: Optional[AppState] = None,
     default: Optional[dict] = None,
 ):
@@ -78,7 +76,7 @@ def load_json(
             else:
                 exciter = default_exciter
             tags = {
-                id: Tag.from_dict(app_state, logger, id, val, serializer, default)
+                id: Tag.from_dict(app_state, id, val, serializer, default)
                 for id, val in raw_objects.items()
             }
             return exciter, tags, None, default
@@ -316,7 +314,6 @@ def load_txt(
     filepath: str,
     app_state: AppState,
     serializer: StateSerializer,
-    logger: logging.Logger,
 ):
     """
     Loads arguments via a text file. Format is the same as command line arguments.
@@ -356,7 +353,7 @@ def load_txt(
                     init_states.append(
                         serializer.get_state(default.get("output_machine_id"))
                     )
-                    tagmachine = TagMachine(app_state, init_states, logger)
+                    tagmachine = TagMachine(app_state, init_states)
                     tag = Tag(
                         app_state,
                         info[1],
@@ -433,7 +430,7 @@ def main():
     load_json(STATE_PATH, serializer)
 
     main_exciter, objects, events, default = load_json(
-        CONFIG_PATH, serializer, app_state=app_state, logger=logger
+        CONFIG_PATH, serializer, app_state=app_state
     )
 
     _, _, events, _ = load_json(EVENT_PATH, serializer)
@@ -450,14 +447,14 @@ def main():
         if file_type == "txt":
             if args.add:  # appends loaded arguments instead of overwrite
                 temp_exciter, add_objects, add_events, add_default = load_txt(
-                    args.load, app_state, serializer, logger
+                    args.load, app_state, serializer
                 )
                 objects.update(add_objects)
                 default.update(add_default)
                 events = list(heapq.merge(events, add_events, key=lambda x: x[0]))
             else:  # overwrites previouse saved data
                 temp_exciter, objects, events, default = load_txt(
-                    args.load, app_state, serializer, logger
+                    args.load, app_state, serializer
                 )
             if temp_exciter is not None:
                 main_exciter = temp_exciter
@@ -501,7 +498,7 @@ def main():
                 serializer.get_state(default.get("proccessing_machine_id"))
             )
             init_states.append(serializer.get_state(default.get("output_machine_id")))
-            tagmachine = TagMachine(app_state, init_states, logger)
+            tagmachine = TagMachine(app_state, init_states)
             new_obj = Tag(
                 app_state,
                 id,

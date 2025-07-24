@@ -10,6 +10,7 @@ from simpy.core import SimTime
 from simpy import Interrupt
 
 from state import AppState
+from util.app_logger import init_machine_logger
 from util.types import StateMethod
 
 if TYPE_CHECKING:
@@ -388,15 +389,12 @@ class MachineLogger:
     Logging interface used to buffer logs from state machines
     """
 
-    def __init__(self, logger: Logger):
+    def __init__(self):
         """
         Create a MachineLogger.
-
-        Args:
-            logger (Logger): Logger to forward buffered logging to.
         """
         self.store = ""
-        self.logger = logger
+        self.logger: logging.LoggerAdapter
 
     def log(self, s: str):
         """
@@ -408,11 +406,21 @@ class MachineLogger:
         """
         newline_index = s.find("\n")
         while newline_index != -1:
-            self.logger.info(self.store + s[:newline_index])
+            msg = self.store + s[:newline_index]
+            self.logger.info(msg, extra={"action": "write_output"})
             self.store = ""
             s = s[newline_index + 1 :]
             newline_index = s.find("\n")
         self.store += s
+
+    def set_logger(self, logger: logging.LoggerAdapter):
+        """
+        Sets the logger to forward buffered logging to.
+
+        Args:
+            logger (Logger): Logger to forward buffered logging to.
+        """
+        self.logger = init_machine_logger(logger)
 
 
 class ExecuteMachine(StateMachine, TimerAcceptor):
@@ -796,7 +804,7 @@ class ProcessingMachine(ExecuteMachine):
         Args:
             reg (int): Input register.
         """
-        self.tag_machine.logger.log(s)
+        self.tag_machine.machine_logger.log(s)
 
     def _cmd_store_mem_imm(self, reg_addr: int, imm: Union[tuple[int,], int]):
         """
@@ -882,7 +890,6 @@ class TagMachine:
         self,
         app_state: AppState,
         init_states: tuple[State, State, State],
-        logger: Logger,
     ):
         """
         Creates a TagMachine.
@@ -890,10 +897,9 @@ class TagMachine:
         Args:
             app_state (AppState): The app state.
             init_states (tuple[State, State, State]): The initial states for each state machine.
-            logger (Logger): The logger.
         """
         self.timer = TimerScheduler(app_state)
-        self.machine_logger = MachineLogger(logger)
+        self.machine_logger = MachineLogger()
         self.input_machine = InputMachine(self, init_states[0])
         self.processing_machine = ProcessingMachine(self, init_states[1])
         self.output_machine = OutputMachine(self, init_states[2])
@@ -907,6 +913,7 @@ class TagMachine:
             tag (Tag): The associated Tag.
         """
         self.tag = tag
+        self.machine_logger.set_logger(tag.logger)
 
     def prepare(self):
         """
@@ -929,7 +936,7 @@ class TagMachine:
 
     @classmethod
     def from_dict(
-        cls, app_state: AppState, logger: Logger, data, serializer: StateSerializer
+        cls, app_state: AppState, data, serializer: StateSerializer
     ) -> TagMachine:
         """
         Creates a tag machine from a JSON input
@@ -950,5 +957,4 @@ class TagMachine:
                 State.from_dict(data["processing_machine"], serializer),
                 State.from_dict(data["output_machine"], serializer),
             ),
-            logger,
         )
