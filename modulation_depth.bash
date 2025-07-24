@@ -1,6 +1,6 @@
-LOGFILE="$(dirname "$0")/$(ls logs/*.json | tail -n 1)"
+LOGFILE="$(dirname "$0")/logs/$(ls logs | grep '\.json$' | tail -n 1)"
 
-jq -r -s '1
+jq -r -s '
 map(select(.tag != null and .voltage != null)) |
 sort_by(.tag) |
 group_by(.tag) |
