@@ -1,3 +1,5 @@
+import logging
+
 from event.base_event import Event
 from manager.tag_manager import TagManager
 from state import AppState
@@ -6,6 +8,7 @@ from tags.tag import Exciter, Tag
 
 # Made into a dedicated method in the case we want logging around this.
 def dispatch_event(event: Event):
+    logging.info(f"Event dispatched: {event.event_type}", extra=event.log_extra())
     event.run()
 
 
@@ -58,4 +61,4 @@ def run_simulation(
         tag.run()
 
     # Run the simulation
-    env.run(until=100000)
+    env.run(until=500)

@@ -1,5 +1,5 @@
 import json
-from typing import Dict, List, Self
+from typing import Self
 from event.base_event import Event
 from event.event_parser import EventParser
 from event.event_types import EventTypes
@@ -27,17 +27,17 @@ class SortableEvent:
         return self.args_hash < other.args_hash
 
 
-def load_event(event_data: Dict) -> Event:
+def load_event(event_data: dict) -> Event:
     event_parser = EventParser(**event_data)
     return EventTypes.create_event(event_parser)
 
 
-def load_events(raw_data: List[Dict]) -> List[Event]:
-    events: List[Event] = [load_event(data) for data in raw_data]
+def load_events(raw_data: list[dict]) -> list[Event]:
+    events: list[Event] = [load_event(data) for data in raw_data]
     return sort_events(events)
 
 
-def sort_events(events: List[Event]) -> List[Event]:
+def sort_events(events: list[Event]) -> list[Event]:
     """Sorts events by their time, type, and args hash."""
     sortable_events = [SortableEvent(e) for e in events]
     sorted_events = sorted(sortable_events)
