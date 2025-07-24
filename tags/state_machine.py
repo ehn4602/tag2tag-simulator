@@ -89,7 +89,7 @@ class TimerScheduler:
             app_state (AppState): The app state.
         """
         self.app_state = app_state
-        self.timers: List[Timer] = []
+        self.timers: list[Timer] = []
         self.next_run: Optional[int] = None
         self.process = self.app_state.env.process(self.run())
 

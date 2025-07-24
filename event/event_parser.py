@@ -1,10 +1,10 @@
-from typing import List, Any, List, Tuple, overload
+from typing import Any, overload
 from simpy.core import SimTime
 
 from state import AppState
 from tags.tag import Tag
 
-type ArgParseConditions = List[Tuple[bool, str]]
+type ArgParseConditions = list[tuple[bool, str]]
 
 
 class EventParser:

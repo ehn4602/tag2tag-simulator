@@ -87,7 +87,7 @@ def load_json(
             if state_output is not None:
                 return None, None, None, state_output
         elif format == "events":
-            events: List[Event] = load_events(raw_data.get("Events"))
+            events: list[Event] = load_events(raw_data.get("Events"))
             return None, None, events, None
         else:
             print("error: invalid JSON format")
