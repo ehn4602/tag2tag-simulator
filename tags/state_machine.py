@@ -448,7 +448,7 @@ class ExecuteMachine(StateMachine, TimerAcceptor):
         arguments = ",".join([str(arg) for arg in cmd_rest])
         logging.info(f"[{tag_name}] {method_name}({arguments})")
 
-        getattr(self, method_name)(self, *cmd_rest)
+        getattr(self, method_name)(*cmd_rest)
 
     def _cmd_mov(self, dst: int, src: int):
         """
