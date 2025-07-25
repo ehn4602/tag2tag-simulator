@@ -26,7 +26,7 @@ class PhysicsEngine:
         """
         num = (4 * pi * distance) ** 2
         den = tx_directivity * rx_directivity * (wavelength**2)
-        return num / den
+        return den / num
 
     def power_at_rx(self, tx: PhysicsObject, rx: Tag) -> float:
         """
