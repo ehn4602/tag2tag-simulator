@@ -11,7 +11,7 @@ map({
 }) |
 map({
   tag: .tag,
-  modulation_depth: (( .max_voltage - .min_voltage ) / (.max_voltage + .min_voltage)),
+  modulation_depth: ( .max_voltage - .min_voltage ),
   min_voltage: .min_voltage,
   max_voltage: .max_voltage
 }) |
