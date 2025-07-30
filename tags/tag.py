@@ -223,7 +223,7 @@ class Tag(PhysicsObject):
         gain: float,
         impedance: float,
         frequency: float,
-        reflection_coefficients: list[float],
+        reflection_coefficients: list[complex],
     ):
         """
         Creates a Tag.
@@ -274,7 +274,7 @@ class Tag(PhysicsObject):
     def get_mode(self):
         return self.mode
 
-    def get_reflection_coefficient(self):
+    def get_reflection_coefficient(self) -> complex:
         index = self.get_mode().get_reflection_index()
         return self.reflection_coefficients[index]
 
@@ -300,7 +300,7 @@ class Tag(PhysicsObject):
             "gain": self.gain,
             "impedance": self.impedance,
             "frequency": self.frequency,
-            "reflection_coefficients": self.reflection_coefficients,
+            "reflection_coefficients": [str(x) for x in self.reflection_coefficients],
         }
 
     @classmethod
@@ -340,7 +340,7 @@ class Tag(PhysicsObject):
             default["gain"],
             default["impedance"],
             default["frequency"],
-            default["reflection_coefficients"],
+            [complex(x) for x in default["reflection_coefficients"]],
         )
         tag_machine.set_tag(tag)
         return tag

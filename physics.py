@@ -154,6 +154,6 @@ class PhysicsEngine:
                 )
                 sigs_to_rx.append(sig_tx_rx)
 
-        pwr_recieved = sum(sigs_to_rx)
+        pwr_recieved = abs(sum(sigs_to_rx))
         v_pk = sqrt(abs(rx_impedance * pwr_recieved) / 500)
         return v_pk / sqrt(2)
