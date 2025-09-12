@@ -14,8 +14,8 @@ tag saturn 7 -8 1
 tag uranus 0 2 4
 tag neptune -15 -2 -6
 # events will be reordered by time
-event 123 neptune tag_set_mode
+event 123 neptune tag_set_mode --event_mode listen
 event 234 uranus tag_set_mode --event_mode listen
-event 100 jupiter tag_set_mode --event_mode transmit --event_transmission 1010101
+event 100 jupiter tag_set_mode --event_mode transmit --event_transmission 1010101 --event_reflection_index 1
 
 

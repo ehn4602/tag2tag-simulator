@@ -5,7 +5,7 @@ import json
 import logging
 import os
 import sys
-from typing import Optional
+from typing import Optional, List
 
 from event.load_events import load_event, load_events, sort_events
 from manager.run_program import run_simulation
@@ -243,6 +243,7 @@ def parse_args() -> argparse.Namespace:
         help="An event that will be simulated",
     )
     parser.add_argument("--event_transmission", nargs=1, help="")
+    parser.add_argument("--event_reflection_index", nargs=1, help="")
     parser.add_argument("--event_mode", nargs=1, help="")
 
     parser.add_argument(
@@ -380,13 +381,16 @@ def load_txt(filepath: str, app_state: AppState, serializer: StateSerializer):
                 elif info[0] == "event":
 
                     event_args = {}
-                    event_args["delay"] = int(info[1])
+                    event_args["time"] = int(info[1])
                     event_args["tag"] = info[2]
                     event_args["event_type"] = info[3]
                     i = 4
                     while i + 1 < len(info):
                         if info[i].lower() == "event_transmission":
                             event_args["transmission"] = info[i + 1]
+                            i += 2
+                        elif info[i].lower() == "event_reflection_index":
+                            event_args["reflection_index"] = info[i + 1]
                             i += 2
                         elif info[i].lower() == "event_mode":
                             event_args["mode"] = info[i + 1]
