@@ -1,0 +1,2 @@
+load ../demo/tags_in_a_line/config_files/config.json
+load ../demo/tags_in_a_line/config_files/tags_in_a_line_1000.json
