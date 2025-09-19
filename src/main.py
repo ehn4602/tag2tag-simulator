@@ -14,9 +14,9 @@ from tags.state_machine import *
 from event.base_event import *
 from util.app_logger import init_logger
 
-CONFIG_PATH = "./config/config.json"
-STATE_PATH = "./config/states.json"
-EVENT_PATH = "./config/events.json"
+CONFIG_PATH = "./src/config/config.json"
+STATE_PATH = "./src/config/states.json"
+EVENT_PATH = "./src/config/events.json"
 
 DEFAULT_STATS = {
     "exciter_power": 500.0,
@@ -222,46 +222,73 @@ def parse_args() -> argparse.Namespace:
         nargs=4,
         metavar=("ID", "X", "Y", "Z"),
         required=False,
-        help="place a tag with its Unique ID at coordinates X,Y,Z",
+        help="Place a tag with its unique ID at coordinates (X, Y, Z)",
     ),
     parser.add_argument(
         "--exciter",
         nargs=3,
         metavar=("X", "Y", "Z"),
         required=False,
-        help="moves the exciter to coordinates X,Y,Z",
+        help="Moves the exciter to coordinates (X, Y, Z)",
     ),
     parser.add_argument(
-        "--remove", type=str, required=False, help="Remove a specific tag based on ID"
-    )
-    parser.add_argument("--print", type=str, help="Arguments; events,objects")
-
+        "--remove",
+        type=str,
+        required=False,
+        help="Removes tag with this specific ID"
+    ),
+    parser.add_argument(
+        "--print",
+        type=str,
+        metavar="option",
+        choices=["objects", "events", "states", "default"],
+        help="Prints out information. \"option\" must be \"objects\", \"events\", \"states\", or \"default\"",
+        required=False
+        # default="default"
+    ),
     parser.add_argument(
         "--event",
         nargs=3,
         metavar=("time", "tag", "event_type"),
-        help="An event that will be simulated",
-    )
-    parser.add_argument("--event_transmission", nargs=1, help="")
-    parser.add_argument("--event_reflection_index", nargs=1, help="")
-    parser.add_argument("--event_mode", nargs=1, help="")
-
+        help="Specifies an event that will be simulated"
+    ),
     parser.add_argument(
-        "--default", nargs=2, metavar=("name", "value"), help="changes a default value"
-    )
-    parser.add_argument("--load", type=str, help="text file to be loaded in")
+        "--event_transmission",
+        nargs=1,
+        help="Adds a transmission to an event. To be appended to an \"--event\" argument"
+    ),
+    parser.add_argument(
+        "--event_reflection_index",
+        nargs=1,
+        help="Adds a reflection index to an event. To be appended to an \"--event\" argument"
+    ),
+    parser.add_argument(
+        "--event_mode",
+        nargs=1,
+        help="Adds a mode to an event. To be appended to an \"--event\" argument"
+    ),
+    parser.add_argument(
+        "--default",
+        nargs=2,
+        metavar=("name", "value"),
+        help="Changes a default value"
+    ),
+    parser.add_argument(
+        "--load",
+        type=str,
+        help="Text file to be loaded in"
+    ),
     parser.add_argument(
         "--add",
         action="store_true",
-        help="makes loading add onto the existing data rather than overwriting",
-    )
+        help="Makes loading add onto the existing data rather than overwriting",
+    ),
     parser.add_argument(
         "--run",
         action="store_true",
-        help="runs the simulation after all other arguments",
-    )
-
-    LOG_LEVELS = {
+        help="Runs the simulation after all other arguments",
+    ),
+    log_levels = {
         "ERROR": logging.ERROR,
         "WARNING": logging.WARNING,
         "INFO": logging.INFO,
@@ -269,10 +296,10 @@ def parse_args() -> argparse.Namespace:
     }
     parser.add_argument(
         "--loglevel",
-        type=str.upper,
-        choices=LOG_LEVELS.keys(),
+        type=str,
+        choices=log_levels.keys(),
         default="INFO",
-        help="Set the logging level (default: INFO)",
+        help="Sets the logging level (default: INFO)",
     )
     return parser.parse_args()
 
@@ -485,6 +512,7 @@ def main():
                 default = temp_default
         else:
             print("error: file type not supported")
+
     if args.exciter:
         x, y, z = args.exciter[0:3]
         main_exciter = Exciter(
@@ -497,6 +525,7 @@ def main():
             default["frequency"],
         )
         print("Exciter moved to ", x, y, z)
+
     if args.tag:
         if not machine_defined:
             print(
@@ -566,11 +595,12 @@ def main():
     if args.event:  # adds an event
         # TODO ask if we can get args.event as a dict rather than a list
         event = args.event
-        if event[1] not in objects:
-            print("error, unknown tag:", event[1])
+        if event[2] not in objects:
+            print("error, unknown tag:", event[2])
         event_args = {}
-        event_args["time"] = int(event[0])
-        event_args["event_type"] = event[1]
+        event_args["time"] = int(event[1])
+        event_args["tag"] = event[2]
+        event_args["event_type"] = event[3]
         event_args.update({})  # TODO any kwargs passed in cmd
 
         new_event = load_event(**event_args)
