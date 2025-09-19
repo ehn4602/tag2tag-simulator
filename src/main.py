@@ -601,6 +601,19 @@ def main():
         event_args["time"] = int(event[1])
         event_args["tag"] = event[2]
         event_args["event_type"] = event[3]
+        i = 4
+        while i + 1 < len(event):
+            if event[i].lower() == "event_transmission":
+                event_args["transmission"] = event[i + 1]
+                i += 2
+            elif event[i].lower() == "event_reflection_index":
+                event_args["reflection_index"] = event[i + 1]
+                i += 2
+            elif event[i].lower() == "event_mode":
+                event_args["mode"] = event[i + 1]
+                i += 2
+            else:
+                i += 1
         event_args.update({})  # TODO any kwargs passed in cmd
 
         new_event = load_event(**event_args)
