@@ -222,7 +222,7 @@ def parse_args() -> argparse.Namespace:
         nargs=4,
         metavar=("ID", "X", "Y", "Z"),
         required=False,
-        help="Place a tag with its unique ID at coordinates (X, Y, Z)",
+        help="Place a tag with a unique ID at coordinates (X, Y, Z)",
     ),
     parser.add_argument(
         "--exciter",
