@@ -31,7 +31,7 @@
             "y": 2.0,
             "z": 2.0,
             "power": 0,
-            "gain": 0.0,
+            "gain": 0,
             "impedance": 75.0,
             "frequency": 100,
             "reflection_coefficients": []
@@ -46,7 +46,7 @@
             "y": 8.0,
             "z": 3.0,
             "power": 0,
-            "gain": 0.0,
+            "gain": 0,
             "impedance": 75.0,
             "frequency": 100,
             "reflection_coefficients": []
@@ -61,7 +61,7 @@
             "y": 3.0,
             "z": 5.0,
             "power": 0,
-            "gain": 0.0,
+            "gain": 0,
             "impedance": 75.0,
             "frequency": 100,
             "reflection_coefficients": []
@@ -76,7 +76,7 @@
             "y": 1.0,
             "z": 2.0,
             "power": 0,
-            "gain": 0.0,
+            "gain": 0,
             "impedance": 75.0,
             "frequency": 100,
             "reflection_coefficients": []
@@ -91,7 +91,7 @@
             "y": 3.0,
             "z": 3.0,
             "power": 0,
-            "gain": 0.0,
+            "gain": 0,
             "impedance": 75.0,
             "frequency": 100,
             "reflection_coefficients": []
@@ -106,7 +106,7 @@
             "y": 8.0,
             "z": 1.0,
             "power": 0,
-            "gain": 0.0,
+            "gain": 0,
             "impedance": 75.0,
             "frequency": 100,
             "reflection_coefficients": []
@@ -121,7 +121,7 @@
             "y": 2.0,
             "z": 4.0,
             "power": 0,
-            "gain": 0.0,
+            "gain": 0,
             "impedance": 75.0,
             "frequency": 100,
             "reflection_coefficients": []
@@ -136,7 +136,7 @@
             "y": 2.0,
             "z": 6.0,
             "power": 0,
-            "gain": 0.0,
+            "gain": 0,
             "impedance": 75.0,
             "frequency": 100,
             "reflection_coefficients": []
