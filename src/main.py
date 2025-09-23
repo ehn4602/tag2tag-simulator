@@ -448,6 +448,8 @@ def load_txt(filepath: str, app_state: AppState, serializer: StateSerializer):
 
                         else:
                             print("Skipping! invalid format:", info[1])
+                    else:
+                        print("File path: ", info[1], " not found in ", filepath)
             print(filepath, "successfully loaded")
             return exciter, objects, events, default
 
