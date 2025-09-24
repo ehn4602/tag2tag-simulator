@@ -26,7 +26,7 @@ DEFAULT_STATS = {
     "input_machine_id": "UNKNOWN",
     "proccessing_machine_id": "UNKNOWN",
     "output_machine_id": "UNKNOWN",
-    "reflection_coefficients": [],
+    "chip_impedances": [],
 }
 
 
@@ -126,7 +126,7 @@ def save_config(
                     "input_machine_id": default["input_machine_id"],
                     "proccessing_machine_id": default["proccessing_machine_id"],
                     "output_machine_id": default["output_machine_id"],
-                    "reflection_coefficients": default["reflection_coefficients"],
+                    "chip_impedances": default["chip_impedances"],
                 },
                 "Exciter": (
                     Exciter.to_dict(exciter) if exciter is not None else "UNDEFINED"
@@ -255,9 +255,9 @@ def parse_args() -> argparse.Namespace:
         help='Adds a transmission to an event. To be appended to an "--event" argument',
     ),
     parser.add_argument(
-        "--event_reflection_index",
+        "--event_chip_index",
         nargs=1,
-        help='Adds a reflection index to an event. To be appended to an "--event" argument',
+        help='Adds a chip impedance index to an event. To be appended to an "--event" argument',
     ),
     parser.add_argument(
         "--event_mode",
@@ -379,8 +379,8 @@ def load_txt(filepath: str, app_state: AppState, serializer: StateSerializer):
                         0,
                         default["gain"],
                         default["impedance"],
+                        [complex(x) for x in default["chip_impedances"]],
                         default["frequency"],
-                        default["reflection_coefficients"],
                     )
                     objects[info[1]] = tag
                 elif info[0] == "exciter":
@@ -543,8 +543,8 @@ def main():
                 0,
                 default["gain"],
                 default["impedance"],
+                [complex(x) for x in default["chip_impedances"]],
                 default["frequency"],
-                default["reflection_coefficients"],
             )
             objects[id] = new_obj
             print("Tag:", id, "moved to coordinates", x, y, z)
