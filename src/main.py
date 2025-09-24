@@ -232,52 +232,42 @@ def parse_args() -> argparse.Namespace:
         help="Moves the exciter to coordinates (X, Y, Z)",
     ),
     parser.add_argument(
-        "--remove",
-        type=str,
-        required=False,
-        help="Removes tag with this specific ID"
+        "--remove", type=str, required=False, help="Removes tag with this specific ID"
     ),
     parser.add_argument(
         "--print",
         type=str,
         metavar="option",
         choices=["objects", "events", "states", "default"],
-        help="Prints out information. \"option\" must be \"objects\", \"events\", \"states\", or \"default\"",
-        required=False
+        help='Prints out information. "option" must be "objects", "events", "states", or "default"',
+        required=False,
         # default="default"
     ),
     parser.add_argument(
         "--event",
         nargs=3,
         metavar=("time", "tag", "event_type"),
-        help="Specifies an event that will be simulated"
+        help="Specifies an event that will be simulated",
     ),
     parser.add_argument(
         "--event_transmission",
         nargs=1,
-        help="Adds a transmission to an event. To be appended to an \"--event\" argument"
+        help='Adds a transmission to an event. To be appended to an "--event" argument',
     ),
     parser.add_argument(
         "--event_reflection_index",
         nargs=1,
-        help="Adds a reflection index to an event. To be appended to an \"--event\" argument"
+        help='Adds a reflection index to an event. To be appended to an "--event" argument',
     ),
     parser.add_argument(
         "--event_mode",
         nargs=1,
-        help="Adds a mode to an event. To be appended to an \"--event\" argument"
+        help='Adds a mode to an event. To be appended to an "--event" argument',
     ),
     parser.add_argument(
-        "--default",
-        nargs=2,
-        metavar=("name", "value"),
-        help="Changes a default value"
+        "--default", nargs=2, metavar=("name", "value"), help="Changes a default value"
     ),
-    parser.add_argument(
-        "--load",
-        type=str,
-        help="Text file to be loaded in"
-    ),
+    parser.add_argument("--load", type=str, help="Text file to be loaded in"),
     parser.add_argument(
         "--add",
         action="store_true",
@@ -365,7 +355,7 @@ def load_txt(filepath: str, app_state: AppState, serializer: StateSerializer):
                 if not line:  # line is just a comment
                     continue
 
-                info = line.replace("-", "").split(" ")
+                info = line.replace("--", "").split(" ")
                 info[0] = info[0].lower()
                 if info[0] == "tag":
 
