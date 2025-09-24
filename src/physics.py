@@ -1,5 +1,5 @@
 from __future__ import annotations
-from math import sqrt
+from math import sqrt, log10
 from typing import TYPE_CHECKING, Iterable
 
 import scipy.spatial.distance as dist
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 def mW_to_dBm(mw: float) -> float:
     if mw <= 0:
         return -999.0
-    return 10.0 * (mw).log10()
+    return 10.0 * log10(mw)
 
 def dBm_to_mW(dbm: float) -> float:
     return 10 ** (dbm / 10.0)
@@ -130,38 +130,29 @@ class PhysicsEngine:
         Rules implemented:
             - If tag is not powered -> return a very small passive reflection (near-zero complex) to represent the tag's metal scatter but not a powered, modulated reflection.
             - If tag.mode.is_listening() -> return a small unmodulated reflection (the envelope detector input typically presents an absorbing load; we model a low baseline reflection).
-            - If tag is transmitting (mode != listening) -> return the reflection coefficient stored in tag.reflection_coefficients at the requested index.
+            - If tag is transmitting (mode != listening) -> return the reflection coefficient based on the antenna and current chip impedances.
 
         Parameters:
             tag (Tag): The tag to get the reflection coefficient for.
         Returns:
             complex: The effective reflection coefficient.
         """
-
-        try:
-            index = tag.get_mode().get_reflection_index()
-        except Exception:
-            index = 0
-
         PASSIVE_REF_MAG = 0.01  # very small amplitude reflection  # TODO Tune this value
         PASSIVE_REF = complex(PASSIVE_REF_MAG, 0.0)
 
-        if not self.is_tag_powered(tag):
-            return PASSIVE_REF
-        
-        if tag.get_mode().is_listening():
+        if not self.is_tag_powered(tag) or tag.get_mode().is_listening():
             return PASSIVE_REF
         
         # Otherwise tag is actively reflecting (transmit index)
-        reflection_coefficients = getattr(tag, "reflection_coefficients", None)
+        Z_ant = tag.get_impedance()
+        Z_chip = tag.get_chip_impedance()
 
-        # If tag lacks reflection_coefficients, behave conservatively
-        if not reflection_coefficients:
-            return complex(0.3, 0.0)
-        if index < 0 or index >= len(reflection_coefficients):
-            return reflection_coefficients[0] if len(reflection_coefficients) > 0 else complex(0.3, 0.0)  # guard index
-        
-        return reflection_coefficients[index]
+        try:
+            gamma = (Z_chip - Z_ant.conjugate()) / (Z_chip + Z_ant)
+        except ZeroDivisionError:
+            gamma = complex(0.0, 0.0)
+
+        return gamma
 
 
     def voltage_at_tag(self, tags: dict[str, Tag], recieving_tag: Tag, include_helpers: bool = True) -> float:
@@ -223,10 +214,10 @@ class PhysicsEngine:
         """
         # Choose indicies if not provided (avoid listening idx=0)
         if tx_indices is None:
-            ref_coeff_list = getattr(tx, "reflection_coefficients", [])
-            if len(ref_coeff_list) >= 3:
+            num_tx = len(tx.chip_impedances)
+            if num_tx >= 3:
                 idx0, idx1 = 1, 2
-            elif len(ref_coeff_list) >= 2:
+            elif num_tx >= 2:
                 idx0, idx1 = 0, 1
             else:
                 idx0, idx1 = 0, 0
@@ -237,11 +228,11 @@ class PhysicsEngine:
         original_mode = tx.get_mode()
 
         # Get voltage when tx is in state at index idx0
-        tx.set_mode(TagMode(idx0)) if hasattr(__import__("__main__"), TagMode) else tx.set_mode(tx.get_mode())
+        tx.set_mode(TagMode(idx0))
         v0 = self.voltage_at_tag(tags, rx)
 
         # Get voltage when tx is in state at index idx1
-        tx.set_mode(TagMode(idx1)) if hasattr(__import__("__main__"), TagMode) else tx.set_mode(tx.get_mode())
+        tx.set_mode(TagMode(idx1))
         v1 = self.voltage_at_tag(tags, rx)
 
         # Restore original mode
