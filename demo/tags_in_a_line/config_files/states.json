@@ -11,7 +11,7 @@
                 "init": [
                     [
                         "sequence",
-                        ["_comment", "set the antenna to reflection coefficient 1"],
+                        ["_comment", "set the tag to chip impedance index 1"],
                         ["load_imm", 0, 1],
                         ["set_antenna", 0],
                         ["_comment", "wait 10 ticks before starting to send"],
@@ -23,7 +23,7 @@
                 "on_timer": [
                     [
                         "sequence",
-                        ["_comment", "set the antena to reflection coefficient 2"],
+                        ["_comment", "set the tag to chip impedance index 2"],
                         ["load_imm", 0, 2],
                         ["set_antenna", 0]
                     ],
