@@ -20,6 +20,11 @@ def mW_to_dBm(mw: float) -> float:
 def dBm_to_mW(dbm: float) -> float:
     return 10 ** (dbm / 10.0)
 
+def dbi_to_linear(dbi: float) -> float:
+    """Convert gain in dBi to linear scale."""
+    return 10 ** (dbi / 10.0)
+
+
 class PhysicsEngine:
     def __init__(
         self, 
@@ -41,7 +46,7 @@ class PhysicsEngine:
         self.noise_std_volts = noise_std_volts
 
     def attenuation(
-        self, distance: float, wavelength: float, tx_gain=1.0, rx_gain=1.0
+        self, distance: float, wavelength: float, tx_gain_dbi=1.0, rx_gain_dbi=1.0
     ) -> float:
         """
         Helper function for calculating the attenuation between two antennas
@@ -49,8 +54,8 @@ class PhysicsEngine:
         Parameters:
             distance (float): Distance between the two antennas in meters.
             wavelength (float): Wavelength in meters.
-            tx_directivity (float): Transmitter directivity (linear scale).
-            rx_directivity (float): Receiver directivity (linear scale).
+            tx_gain (float): Transmitting antenna gain (linear).
+            rx_gain (float): Receiving antenna gain (linear).
         Returns:
             float: The amplitude-scaling (linear) between two isotropic antennas using Friis far-field form.
 
@@ -58,6 +63,9 @@ class PhysicsEngine:
         """
         if distance <= 0:
             return 0.0
+
+        tx_gain = dbi_to_linear(tx_gain_dbi)
+        rx_gain = dbi_to_linear(rx_gain_dbi)
 
         num = tx_gain * rx_gain * (wavelength**2)
         den = (4 * pi * distance) ** 2
@@ -100,8 +108,8 @@ class PhysicsEngine:
         
         distance = dist.euclidean(ex.get_position(), tag.get_position())
         wavelength = c / ex.get_frequency()
-        g_tx = ex.get_gain()
-        g_rx = tag.get_gain()
+        g_tx = dbi_to_linear(ex.get_gain())
+        g_rx = dbi_to_linear(tag.get_gain())
 
         power_rx = power_tx_mw * g_tx * g_rx * ((wavelength / (4 * pi * distance)) ** 2)
         return max(power_rx, 0.0)
