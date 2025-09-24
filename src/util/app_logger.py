@@ -57,7 +57,7 @@ def init_logger(
     Returns:
         logger, queue_listener (tuple[logging.Logger, QueueListener]): Logger objects.
     """
-    directory = "../logs"
+    directory = "./logs"
     base_filename = os.path.join(directory, base_filename)
     verify_log_directory(base_filename)
 
