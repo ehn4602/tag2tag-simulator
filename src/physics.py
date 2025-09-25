@@ -30,7 +30,7 @@ class PhysicsEngine:
         self, 
         exciter: Exciter,
         default_power_on_dbm: float = -10.0,  # TODO make this configurable per-tag
-        noise_std_volts: float = 0.0001,  # TODO make this configurable per-tag
+        noise_std_volts: float = 0,  # 0.0001 is 0.1 mV noise
     ):
         """
         Initialize the physics engine.
@@ -59,7 +59,7 @@ class PhysicsEngine:
         Returns:
             float: The amplitude-scaling (linear) between two isotropic antennas using Friis far-field form.
 
-        # TODO Add near-field model
+        # TODO Add Radiating near-field model (1/d^3) for distances < wavelength/(2*pi) (NOT HIGH PRIORITY)
         """
         if distance <= 0:
             return 0.0
@@ -67,9 +67,16 @@ class PhysicsEngine:
         tx_gain = dbi_to_linear(tx_gain_dbi)
         rx_gain = dbi_to_linear(rx_gain_dbi)
 
-        num = tx_gain * rx_gain * (wavelength**2)
-        den = (4 * pi * distance) ** 2
-        return num / den
+        reactive_limit = wavelength / (2 * pi)
+
+        if distance < reactive_limit:
+            # Near-field region (reactive near-field, use approximate 1/d^3 model)
+            return (tx_gain * rx_gain * (wavelength ** 2)) / ((4 * pi * reactive_limit) ** 2) * (reactive_limit / distance) ** 3
+        else:
+            # Far-field region (Friis transmission equation, 1/d^2 model)
+            num = tx_gain * rx_gain * (wavelength**2)
+            den = (4 * pi * distance) ** 2
+            return num / den
 
     def get_sig_tx_rx(self, tx: PhysicsObject, rx: Tag):
         """
@@ -169,6 +176,7 @@ class PhysicsEngine:
         tags. This currently makes the assumption that there are no feedback
         loops in the backscatter for simplicity.  
         # TODO Look into feedback loops
+        # TODO Look into include_helpers parameter
 
         Parameters:
             tags (dict[str, Tag]): A dictionary of all the tags in the simulation.
