@@ -30,7 +30,7 @@ class PhysicsEngine:
         self, 
         exciter: Exciter,
         default_power_on_dbm: float = -10.0,  # TODO make this configurable per-tag
-        noise_std_volts: float = 0.0,  # TODO make this configurable per-tag
+        noise_std_volts: float = 0.0001,  # TODO make this configurable per-tag
     ):
         """
         Initialize the physics engine.
