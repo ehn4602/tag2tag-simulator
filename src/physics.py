@@ -115,10 +115,8 @@ class PhysicsEngine:
         
         distance = dist.euclidean(ex.get_position(), tag.get_position())
         wavelength = c / ex.get_frequency()
-        g_tx = dbi_to_linear(ex.get_gain())
-        g_rx = dbi_to_linear(tag.get_gain())
 
-        power_rx = power_tx_mw * g_tx * g_rx * ((wavelength / (4 * pi * distance)) ** 2)
+        power_rx = power_tx_mw * self.attenuation(distance, wavelength, ex.get_gain(), tag.get_gain())
         return max(power_rx, 0.0)
     
     def is_tag_powered(self, tag: Tag) -> bool:
