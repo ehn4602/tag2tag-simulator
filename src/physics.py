@@ -54,10 +54,10 @@ class PhysicsEngine:
         Parameters:
             distance (float): Distance between the two antennas in meters.
             wavelength (float): Wavelength in meters.
-            tx_gain (float): Transmitting antenna gain (linear).
-            rx_gain (float): Receiving antenna gain (linear).
+            tx_gain (float): Transmitting antenna gain in dBi.
+            rx_gain (float): Receiving antenna gain in dBi.
         Returns:
-            float: The amplitude-scaling (linear) between two isotropic antennas using Friis far-field form.
+            float: Power ratio (unitless) between transmitted and received power.
 
         # TODO Add Radiating near-field model (1/d^3) for distances < wavelength/(2*pi) (NOT HIGH PRIORITY)
         """
@@ -90,7 +90,7 @@ class PhysicsEngine:
         """
         distance = dist.euclidean(tx.get_position(), rx.get_position())
         wavelen = c / tx.get_frequency()
-        att = self.attenuation(distance, wavelen, tx.get_gain(), rx.get_gain())
+        att = sqrt(self.attenuation(distance, wavelen, tx.get_gain(), rx.get_gain()))
         return att * (e ** (1j * 2 * pi * distance / wavelen))
     
     def power_from_exciter_at_tag_mw(self, tag: Tag) -> float:
