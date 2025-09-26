@@ -205,6 +205,13 @@ def parse_default(vals, default: dict, serializer: StateSerializer) -> dict:
         else:
             print("error: state machine {" + vals[1] + "} does not exist")
             sys.exit(1)
+    elif vals[0] in ["chip_impedances"]:
+        try:
+            default[vals[0]] = list(map(int, vals[1].split(",")))
+        except ValueError:
+            print("error: invalid values for default")
+            sys.exit(1)
+        return default
     print("error:", vals[0], "invalid default argument")
     sys.exit(1)
 
