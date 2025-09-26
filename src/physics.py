@@ -29,7 +29,7 @@ class PhysicsEngine:
     def __init__(
         self, 
         exciter: Exciter,
-        default_power_on_dbm: float = -10.0,  # TODO make this configurable per-tag
+        default_power_on_dbm: float = -100.0,  # TODO make this configurable per-tag and find a good default
         noise_std_volts: float = 0,  # 0.0001 is 0.1 mV noise
     ):
         """
@@ -170,7 +170,7 @@ class PhysicsEngine:
         return gamma
 
 
-    def voltage_at_tag(self, tags: dict[str, Tag], recieving_tag: Tag, include_helpers: bool = True) -> float:
+    def voltage_at_tag(self, tags: dict[str, Tag], receiving_tag: Tag, include_helpers: bool = True) -> float:
         """
         Get's the total voltage delivered to a given tag by the rest of the
         tags. This currently makes the assumption that there are no feedback
@@ -180,20 +180,20 @@ class PhysicsEngine:
 
         Parameters:
             tags (dict[str, Tag]): A dictionary of all the tags in the simulation.
-            recieving_tag (Tag): The tag to get the voltage for.
+            receiving_tag (Tag): The tag to get the voltage for.
             include_helpers (bool): Whether to include helper tags in the calculation.
         Returns:
             float: The voltage at the receiving tag's envelope detector input.
         """
         ex = self.exciter
-        rx_impedance = recieving_tag.get_impedance()
+        rx_impedance = receiving_tag.get_impedance()
 
         # This will be summed later
         sigs_to_rx = []
-        sigs_to_rx.append(self.get_sig_tx_rx(ex, recieving_tag))
+        sigs_to_rx.append(self.get_sig_tx_rx(ex, receiving_tag))
 
         for tag in tags.values():
-            if tag is recieving_tag:
+            if tag is receiving_tag:
                 continue
 
             reflection_coeff = self.effective_reflection_coefficient(tag)
@@ -201,11 +201,11 @@ class PhysicsEngine:
                 continue
 
             sig_ex_tx = self.get_sig_tx_rx(ex, tag)
-            sig_tx_rx = self.get_sig_tx_rx(tag, recieving_tag)
+            sig_tx_rx = self.get_sig_tx_rx(tag, receiving_tag)
             sigs_to_rx.append(sig_ex_tx * reflection_coeff * sig_tx_rx)
 
-        pwr_recieved = abs(sum(sigs_to_rx))
-        v_pk = sqrt(abs(rx_impedance * pwr_recieved) / 500.0)
+        pwr_received = abs(sum(sigs_to_rx))
+        v_pk = sqrt(abs(rx_impedance * pwr_received) / 500.0)
         v_rms = v_pk / sqrt(2.0)
 
         # Add optional AWGN noise (applied to the RMS read-out)

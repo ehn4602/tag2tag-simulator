@@ -8,6 +8,25 @@ from tags.state_machine import TagMachine
 from util.app_logger import init_tag_logger
 from util.types import Position
 
+def _format_impedance(z) -> str:
+    """
+    Return a compact string for a complex impedance without parentheses,
+    e.g. "20+0j" or "50-25j". If z is already a string, return it unchanged.
+    """
+    if isinstance(z, str):
+        return z
+    # z is expected to be a complex or numeric
+    try:
+        zr = float(z.real)
+        zi = float(z.imag)
+    except Exception:
+        # fallback to str
+        return str(z)
+    sign = '+' if zi >= 0 else ''
+    # use general format to avoid extra decimals
+    return f"{zr:g}{sign}{zi:g}j"
+
+
 
 class TagMode:
     """
@@ -299,7 +318,7 @@ class Tag(PhysicsObject):
             "power": self.power,
             "gain": self.gain,
             "impedance": self.impedance,
-            "chip_impedances": [str(x) for x in self.chip_impedances],
+            "chip_impedances": [_format_impedance(x) for x in self.chip_impedances],
             "frequency": self.frequency,
         }
 
