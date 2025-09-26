@@ -69,17 +69,14 @@ class PhysicsEngine:
 
         reactive_limit = wavelength / (2 * pi)
 
-        atten_base = (tx_gain * rx_gain * (wavelength ** 2)) / ((4 * pi * distance) ** 2)
-
         if distance < reactive_limit:
             # Near-field region (reactive near-field, use approximate 1/d^3 model)
-            return atten_base * (reactive_limit / distance) ** 3
-        elif distance < 2 * wavelength:
-            # Radiating near-field region (approximate 1/d^2.5 model)
-            return atten_base * (reactive_limit / distance) ** 2.5
+            return (tx_gain * rx_gain * (wavelength ** 2)) / ((4 * pi * reactive_limit) ** 2) * (reactive_limit / distance) ** 3
         else:
             # Far-field region (Friis transmission equation, 1/d^2 model)
-            return tx_gain * rx_gain * (wavelength**2) / (4 * pi * distance) ** 2
+            num = tx_gain * rx_gain * (wavelength**2)
+            den = (4 * pi * distance) ** 2
+            return num / den
 
     def get_sig_tx_rx(self, tx: PhysicsObject, rx: Tag):
         """
