@@ -69,14 +69,17 @@ class PhysicsEngine:
 
         reactive_limit = wavelength / (2 * pi)
 
+        atten_base = (tx_gain * rx_gain * (wavelength ** 2)) / ((4 * pi * distance) ** 2)
+
         if distance < reactive_limit:
             # Near-field region (reactive near-field, use approximate 1/d^3 model)
-            return (tx_gain * rx_gain * (wavelength ** 2)) / ((4 * pi * reactive_limit) ** 2) * (reactive_limit / distance) ** 3
+            return atten_base * (reactive_limit / distance) ** 3
+        elif distance < 2 * wavelength:
+            # Radiating near-field region (approximate 1/d^2.5 model)
+            return atten_base * (reactive_limit / distance) ** 2.5
         else:
             # Far-field region (Friis transmission equation, 1/d^2 model)
-            num = tx_gain * rx_gain * (wavelength**2)
-            den = (4 * pi * distance) ** 2
-            return num / den
+            return tx_gain * rx_gain * (wavelength**2) / (4 * pi * distance) ** 2
 
     def get_sig_tx_rx(self, tx: PhysicsObject, rx: Tag):
         """
@@ -115,10 +118,8 @@ class PhysicsEngine:
         
         distance = dist.euclidean(ex.get_position(), tag.get_position())
         wavelength = c / ex.get_frequency()
-        g_tx = dbi_to_linear(ex.get_gain())
-        g_rx = dbi_to_linear(tag.get_gain())
 
-        power_rx = power_tx_mw * g_tx * g_rx * ((wavelength / (4 * pi * distance)) ** 2)
+        power_rx = power_tx_mw * self.attenuation(distance, wavelength, ex.get_gain(), tag.get_gain())
         return max(power_rx, 0.0)
     
     def is_tag_powered(self, tag: Tag) -> bool:
