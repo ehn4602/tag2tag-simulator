@@ -8,21 +8,33 @@
         "input_machine_id": "A",
         "proccessing_machine_id": "A",
         "output_machine_id": "B",
-        "reflection_coefficients": [
+        "chip_impedances": [
             0,
             0,
             1
         ]
     },
-    "Exciter": {
-        "id": "default",
-        "x": 10.0,
-        "y": 10.0,
-        "z": 10.0,
-        "power": 1,
-        "gain": 100,
-        "impedance": 50.0,
-        "frequency": 1000000
+    "Exciters": {
+        "Exciter1": {
+            "id": "default",
+            "x": 10.0,
+            "y": 10.0,
+            "z": 10.0,
+            "power": 1,
+            "gain": 100,
+            "impedance": 50.0,
+            "frequency": 1000000
+        },
+        "Exciter2": {
+            "id": "default",
+            "x": 10.0,
+            "y": 10.0,
+            "z": 10.0,
+            "power": 1,
+            "gain": 100,
+            "impedance": 50.0,
+            "frequency": 1000000
+        }
     },
     "Objects": {
         "Sender": {
@@ -38,7 +50,7 @@
             "gain": 0,
             "impedance": 50.0,
             "frequency": 1000000,
-            "reflection_coefficients": [
+            "chip_impedances": [
                 0,
                 0,
                 1
@@ -57,7 +69,7 @@
             "gain": 0,
             "impedance": 50.0,
             "frequency": 1000000,
-            "reflection_coefficients": [
+            "chip_impedances": [
                 0,
                 0,
                 1

@@ -7,7 +7,7 @@ class TagManager:
     A store of Tag instances, along with an Exciter.
     """
 
-    def __init__(self, exciter: Exciter, tags: dict[str, Tag] = dict()):
+    def __init__(self, exciters: dict[str, Exciter], tags: dict[str, Tag] = dict()):
         """
         Creates a TagManager.
 
@@ -16,7 +16,7 @@ class TagManager:
             tags (dict[str, Tag]): A dictionary mapping tag names to Tag instances.
         """
         self.tags: dict[str, Tag] = tags
-        self.physics_engine = PhysicsEngine(exciter)
+        self.physics_engine = PhysicsEngine(exciters)
 
     def add_tags(self, *tags: Tag) -> None:
         """

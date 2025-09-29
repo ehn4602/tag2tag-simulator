@@ -43,22 +43,14 @@ def load_json(
         exciter,tags,events,default: List of information stored in the JSON file.
     """
 
-    default_exciter = Exciter(
-        app_state,
-        "default",
-        (0, 0, 0),
-        DEFAULT_STATS["exciter_power"],
-        DEFAULT_STATS["gain"],
-        DEFAULT_STATS["impedance"],
-        DEFAULT_STATS["frequency"],
-    )
+    default_exciters = {"defaultEx": Exciter(app_state, "default", (0, 0, 0), DEFAULT_STATS["exciter_power"], DEFAULT_STATS["gain"], DEFAULT_STATS["impedance"], DEFAULT_STATS["frequency"])}
     if os.path.exists(file_input):
         with open(file_input, "r") as f:
             try:
                 raw_data = json.load(f)
             except json.JSONDecodeError:
                 if file_input == CONFIG_PATH:
-                    return default_exciter, {}, None, DEFAULT_STATS
+                    return default_exciters, {}, None, DEFAULT_STATS
                 elif file_input == EVENT_PATH:
                     return None, None, [], None
                 elif file_input == STATE_PATH:
@@ -69,12 +61,18 @@ def load_json(
         format = raw_data.get("Format")
         if format == "config":
             raw_objects = raw_data.get("Objects", {})
+            raw_exciters = raw_data.get("Exciters", {});
 
             default = raw_data.get("Default")
-            if raw_data.get("Exciter") != "UNDEFINED":
-                exciter = Exciter.from_dict(app_state, raw_data.get("Exciter"))
+            if raw_exciters:
+                # exciter = Exciter.from_dict(app_state, raw_exciters.get(next(iter(raw_exciters))))
+
+                exciter = {
+                    id: Exciter.from_dict(app_state, raw_exciters.get(id))
+                    for id, val in raw_exciters.items()
+                }
             else:
-                exciter = default_exciter
+                exciter = default_exciters
             tags = {
                 id: Tag.from_dict(app_state, id, val, serializer, default)
                 for id, val in raw_objects.items()
@@ -91,7 +89,7 @@ def load_json(
             print("error: invalid JSON format")
             sys.exit(1)
     elif file_input == CONFIG_PATH:
-        return default_exciter, {}, [], DEFAULT_STATS
+        return default_exciters, {}, [], DEFAULT_STATS
     elif file_input == STATE_PATH:
         return {}, None, None, None
     else:
@@ -101,7 +99,7 @@ def load_json(
 
 
 def save_config(
-    exciter: Exciter,
+    exciters: dict,
     objects: dict,
     events: list[Event],
     default: dict,
@@ -128,9 +126,7 @@ def save_config(
                     "output_machine_id": default["output_machine_id"],
                     "chip_impedances": default["chip_impedances"],
                 },
-                "Exciter": (
-                    Exciter.to_dict(exciter) if exciter is not None else "UNDEFINED"
-                ),
+                "Exciters": {id: obj.to_dict() for id, obj in exciters.items()},
                 "Objects": {id: obj.to_dict() for id, obj in objects.items()},
             },
             f,
@@ -393,7 +389,7 @@ def load_txt(filepath: str, app_state: AppState, serializer: StateSerializer):
                     )
                     objects[info[1]] = tag
                 elif info[0] == "exciter":
-                    exciter = Exciter(
+                    exciter = Exciters(
                         app_state,
                         "default",
                         info[1:4],
@@ -516,7 +512,7 @@ def main():
 
     if args.exciter:
         x, y, z = args.exciter[0:3]
-        main_exciter = Exciter(
+        main_exciter = Exciters(
             app_state,
             "default",
             (x, y, z),
@@ -525,7 +521,7 @@ def main():
             default["impedance"],
             default["frequency"],
         )
-        print("Exciter moved to ", x, y, z)
+        print("Exciters moved to ", x, y, z)
 
     if args.tag:
         if not machine_defined:
@@ -573,9 +569,9 @@ def main():
         match lower_args:
             case "objects":
                 if main_exciter is not None:
-                    print("Exciter:", main_exciter.to_dict())
+                    print("Exciters:", main_exciter.to_dict())
                 else:
-                    print("Exciter: Undefined")
+                    print("Exciters: Undefined")
                 for key, value in objects.items():
                     print(f"{key}: {value.to_dict()}")
             case "events":

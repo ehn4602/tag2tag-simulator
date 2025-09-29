@@ -14,15 +14,27 @@
             "50+50j"
         ]
     },
-    "Exciter": {
-        "id": "default",
-        "x": 0.0,
-        "y": 0.0,
-        "z": 1.0,
-        "power": 1.0,
-        "gain": 0.0,
-        "impedance": 50.0,
-        "frequency": 900000000.0
+    "Exciters": {
+        "Exciter1": {
+            "id": "default",
+            "x": 0.0,
+            "y": 0.0,
+            "z": 1.0,
+            "power": 1.0,
+            "gain": 0.0,
+            "impedance": 50.0,
+            "frequency": 900000000.0
+        },
+        "Exciter2": {
+            "id": "default",
+            "x": 0.0,
+            "y": 0.0,
+            "z": 1.0,
+            "power": 1.0,
+            "gain": 0.0,
+            "impedance": 50.0,
+            "frequency": 900000000.0
+        }
     },
     "Objects": {
         "Sender": {
