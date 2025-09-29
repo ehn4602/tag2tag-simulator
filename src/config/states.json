@@ -6,270 +6,6 @@
             "transitions": {}
         },
         {
-            "id": "sender_output_0",
-            "transitions": {
-                "init": [
-                    [
-                        "sequence",
-                        [
-                            "_comment",
-                            "set the antenna to reflection coefficient 1"
-                        ],
-                        [
-                            "load_imm",
-                            0,
-                            1
-                        ],
-                        [
-                            "set_antenna",
-                            0
-                        ],
-                        [
-                            "_comment",
-                            "wait 10 ticks before starting to send"
-                        ],
-                        [
-                            "load_imm",
-                            0,
-                            10
-                        ],
-                        [
-                            "set_timer",
-                            0
-                        ]
-                    ],
-                    "sender_output_0"
-                ],
-                "on_timer": [
-                    [
-                        "sequence",
-                        [
-                            "_comment",
-                            "set the antena to reflection coefficient 2"
-                        ],
-                        [
-                            "load_imm",
-                            0,
-                            2
-                        ],
-                        [
-                            "set_antenna",
-                            0
-                        ]
-                    ],
-                    "EMPTY"
-                ],
-                "on_recv_int": [
-                    [
-                        "sequence",
-                        [
-                            "load_imm",
-                            0,
-                            1
-                        ],
-                        [
-                            "add",
-                            0,
-                            0,
-                            7
-                        ],
-                        [
-                            "set_antenna",
-                            0
-                        ],
-                        [
-                            "_comment",
-                            "store interval time in register 1"
-                        ],
-                        [
-                            "load_imm",
-                            1,
-                            10
-                        ],
-                        [
-                            "set_timer",
-                            1
-                        ]
-                    ],
-                    "sender_output_1"
-                ]
-            }
-        },
-        {
-            "id": "sender_output_1",
-            "transitions": {
-                "on_timer": [
-                    [
-                        "queue_processing"
-                    ],
-                    "sender_output_0"
-                ]
-            }
-        },
-        {
-            "id": "receiver_input_0",
-            "transitions": {
-                "init": [
-                    [
-                        "sequence",
-                        [
-                            "_comment",
-                            "store baseline voltage in register 0"
-                        ],
-                        [
-                            "save_voltage",
-                            0
-                        ],
-                        [
-                            "_comment",
-                            "store interval time in register 1"
-                        ],
-                        [
-                            "load_imm",
-                            1,
-                            10
-                        ],
-                        [
-                            "set_timer",
-                            1
-                        ],
-                        [
-                            "_comment",
-                            "store threshold in register 2"
-                        ],
-                        [
-                            "load_imm",
-                            2,
-                            0.0005
-                        ]
-                    ],
-                    "receiver_input_1"
-                ],
-                "on_timer": [
-                    [
-                        "sequence",
-                        [
-                            "_comment",
-                            "wait 10 ticks before performing second reading"
-                        ],
-                        [
-                            "load_imm",
-                            0,
-                            10
-                        ],
-                        [
-                            "set_timer",
-                            0
-                        ],
-                        [
-                            "save_voltage",
-                            0
-                        ]
-                    ],
-                    "receiver_input_1"
-                ]
-            }
-        },
-        {
-            "id": "receiver_input_1",
-            "transitions": {
-                "on_timer": [
-                    [
-                        "sequence",
-                        [
-                            "_comment",
-                            "store read voltage in register 3"
-                        ],
-                        [
-                            "save_voltage",
-                            3
-                        ],
-                        [
-                            "sub",
-                            3,
-                            0,
-                            3
-                        ],
-                        [
-                            "abs",
-                            3
-                        ],
-                        [
-                            "compare",
-                            3,
-                            2
-                        ]
-                    ],
-                    "receiver_input_2"
-                ]
-            }
-        },
-        {
-            "id": "receiver_input_2",
-            "transitions": {
-                "lt": [
-                    [
-                        "sequence",
-                        [
-                            "_comment",
-                            "below threshold"
-                        ],
-                        [
-                            "load_imm",
-                            3,
-                            0
-                        ],
-                        [
-                            "send_bit",
-                            3
-                        ],
-                        [
-                            "set_timer",
-                            1
-                        ]
-                    ],
-                    "receiver_input_1"
-                ],
-                "eq": [
-                    [
-                        "self_trigger",
-                        "gte"
-                    ],
-                    "receiver_input_2"
-                ],
-                "gt": [
-                    [
-                        "self_trigger",
-                        "gte"
-                    ],
-                    "receiver_input_2"
-                ],
-                "gte": [
-                    [
-                        "sequence",
-                        [
-                            "_comment",
-                            "above or at threshold"
-                        ],
-                        [
-                            "load_imm",
-                            3,
-                            1
-                        ],
-                        [
-                            "send_bit",
-                            3
-                        ],
-                        [
-                            "set_timer",
-                            1
-                        ]
-                    ],
-                    "receiver_input_1"
-                ]
-            }
-        },
-        {
             "id": "sender_processing_0",
             "transitions": {
                 "init": [
@@ -383,33 +119,227 @@
             }
         },
         {
-            "id": "sender_processing_2",
+            "id": "sender_output_0",
             "transitions": {
-                "lt": [
-                    [
-                        "_comment",
-                        "no-op"
-                    ],
-                    "sender_processing_1"
-                ],
-                "eq": [
+                "init": [
                     [
                         "sequence",
                         [
                             "_comment",
-                            "clean up"
+                            "set the tag to chip impedance index 1"
                         ],
                         [
                             "load_imm",
-                            2,
+                            0,
+                            1
+                        ],
+                        [
+                            "set_antenna",
                             0
                         ],
                         [
-                            "send_int_out",
+                            "_comment",
+                            "wait 10 ticks before starting to send"
+                        ],
+                        [
+                            "load_imm",
+                            0,
+                            10
+                        ],
+                        [
+                            "set_timer",
+                            0
+                        ]
+                    ],
+                    "sender_output_0"
+                ],
+                "on_timer": [
+                    [
+                        "sequence",
+                        [
+                            "_comment",
+                            "set the tag to chip impedance index 2"
+                        ],
+                        [
+                            "load_imm",
+                            0,
                             2
+                        ],
+                        [
+                            "set_antenna",
+                            0
                         ]
                     ],
                     "EMPTY"
+                ],
+                "on_recv_int": [
+                    [
+                        "sequence",
+                        [
+                            "load_imm",
+                            0,
+                            1
+                        ],
+                        [
+                            "add",
+                            0,
+                            0,
+                            7
+                        ],
+                        [
+                            "set_antenna",
+                            0
+                        ],
+                        [
+                            "_comment",
+                            "store interval time in register 1"
+                        ],
+                        [
+                            "load_imm",
+                            1,
+                            10
+                        ],
+                        [
+                            "set_timer",
+                            1
+                        ]
+                    ],
+                    "sender_output_1"
+                ]
+            }
+        },
+        {
+            "id": "sender_output_1",
+            "transitions": {
+                "on_timer": [
+                    [
+                        "queue_processing"
+                    ],
+                    "sender_output_0"
+                ]
+            }
+        },
+        {
+            "id": "receiver_input_0",
+            "transitions": {
+                "init": [
+                    [
+                        "sequence",
+                        [
+                            "_comment",
+                            "wait 5 ticks before performing first reading"
+                        ],
+                        [
+                            "load_imm",
+                            0,
+                            5
+                        ],
+                        [
+                            "set_timer",
+                            0
+                        ]
+                    ],
+                    "receiver_input_0"
+                ],
+                "on_timer": [
+                    [
+                        "sequence",
+                        [
+                            "_comment",
+                            "wait 10 ticks before performing second reading"
+                        ],
+                        [
+                            "load_imm",
+                            0,
+                            10
+                        ],
+                        [
+                            "set_timer",
+                            0
+                        ],
+                        [
+                            "save_voltage",
+                            0
+                        ]
+                    ],
+                    "receiver_input_1"
+                ]
+            }
+        },
+        {
+            "id": "receiver_input_1",
+            "transitions": {
+                "on_timer": [
+                    [
+                        "save_voltage",
+                        0
+                    ],
+                    "EMPTY"
+                ]
+            }
+        },
+        {
+            "id": "receiver_input_2",
+            "transitions": {
+                "lt": [
+                    [
+                        "sequence",
+                        [
+                            "_comment",
+                            "below threshold"
+                        ],
+                        [
+                            "load_imm",
+                            3,
+                            0
+                        ],
+                        [
+                            "send_bit",
+                            3
+                        ],
+                        [
+                            "set_timer",
+                            1
+                        ]
+                    ],
+                    "receiver_input_1"
+                ],
+                "eq": [
+                    [
+                        "self_trigger",
+                        "gte"
+                    ],
+                    "receiver_input_2"
+                ],
+                "gt": [
+                    [
+                        "self_trigger",
+                        "gte"
+                    ],
+                    "receiver_input_2"
+                ],
+                "gte": [
+                    [
+                        "sequence",
+                        [
+                            "_comment",
+                            "above or at threshold"
+                        ],
+                        [
+                            "load_imm",
+                            3,
+                            1
+                        ],
+                        [
+                            "send_bit",
+                            3
+                        ],
+                        [
+                            "set_timer",
+                            1
+                        ]
+                    ],
+                    "receiver_input_1"
                 ]
             }
         },
@@ -478,6 +408,48 @@
             }
         },
         {
+            "id": "receiver_output_0",
+            "transitions": {
+                "init": [
+                    [
+                        "set_listen"
+                    ],
+                    "EMPTY"
+                ]
+            }
+        },
+        {
+            "id": "sender_processing_2",
+            "transitions": {
+                "lt": [
+                    [
+                        "_comment",
+                        "no-op"
+                    ],
+                    "sender_processing_1"
+                ],
+                "eq": [
+                    [
+                        "sequence",
+                        [
+                            "_comment",
+                            "clean up"
+                        ],
+                        [
+                            "load_imm",
+                            2,
+                            0
+                        ],
+                        [
+                            "send_int_out",
+                            2
+                        ]
+                    ],
+                    "EMPTY"
+                ]
+            }
+        },
+        {
             "id": "receiver_processing_2",
             "transitions": {
                 "eq": [
@@ -503,70 +475,6 @@
                         ]
                     ],
                     "receiver_processing_1"
-                ]
-            }
-        },
-        {
-            "id": "receiver_output_0",
-            "transitions": {
-                "init": [
-                    [
-                        "set_listen"
-                    ],
-                    "EMPTY"
-                ]
-            }
-        },
-        {
-            "id": "A",
-            "transitions": {
-                "1": [
-                    [
-                        "A-> Input(1) to B",
-                        2
-                    ],
-                    "B"
-                ]
-            }
-        },
-        {
-            "id": "B",
-            "transitions": {
-                "0": [
-                    [
-                        "B-> Input(0) back to A"
-                    ],
-                    "A"
-                ],
-                "1": [
-                    [
-                        "B-> Input(1) to C"
-                    ],
-                    "C"
-                ]
-            }
-        },
-        {
-            "id": "C",
-            "transitions": {
-                "32": [
-                    [
-                        "C->input(32) to D",
-                        1,
-                        2
-                    ],
-                    "D"
-                ]
-            }
-        },
-        {
-            "id": "D",
-            "transitions": {
-                "12": [
-                    [
-                        "d->input(12) to A"
-                    ],
-                    "A"
                 ]
             }
         }

@@ -8,10 +8,10 @@
         "input_machine_id": "A",
         "proccessing_machine_id": "A",
         "output_machine_id": "B",
-        "reflection_coefficients": [
-            0,
-            0,
-            1
+        "chip_impedances": [
+            "0j",
+            "0j",
+            "1+0j"
         ]
     },
     "Exciter": {
@@ -37,12 +37,12 @@
             "power": 0,
             "gain": 0,
             "impedance": 50.0,
-            "frequency": 1000000,
-            "reflection_coefficients": [
-                0,
-                0,
-                1
-            ]
+            "chip_impedances": [
+                "0j",
+                "0j",
+                "1+0j"
+            ],
+            "frequency": 1000000
         },
         "Receiver": {
             "tag_machine": {
@@ -56,12 +56,12 @@
             "power": 0,
             "gain": 0,
             "impedance": 50.0,
-            "frequency": 1000000,
-            "reflection_coefficients": [
-                0,
-                0,
-                1
-            ]
+            "chip_impedances": [
+                "0j",
+                "0j",
+                "1+0j"
+            ],
+            "frequency": 1000000
         }
     }
 }
