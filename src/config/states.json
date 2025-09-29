@@ -13,7 +13,7 @@
                         "sequence",
                         [
                             "_comment",
-                            "set the tag to chip impedance index 1"
+                            "set the antenna to reflection coefficient 1"
                         ],
                         [
                             "load_imm",
@@ -45,7 +45,7 @@
                         "sequence",
                         [
                             "_comment",
-                            "set the tag to chip impedance index 2"
+                            "set the antena to reflection coefficient 2"
                         ],
                         [
                             "load_imm",
@@ -114,19 +114,36 @@
                         "sequence",
                         [
                             "_comment",
-                            "wait 5 ticks before performing first reading"
+                            "store baseline voltage in register 0"
+                        ],
+                        [
+                            "save_voltage",
+                            0
+                        ],
+                        [
+                            "_comment",
+                            "store interval time in register 1"
                         ],
                         [
                             "load_imm",
-                            0,
-                            5
+                            1,
+                            10
                         ],
                         [
                             "set_timer",
-                            0
+                            1
+                        ],
+                        [
+                            "_comment",
+                            "store threshold in register 2"
+                        ],
+                        [
+                            "load_imm",
+                            2,
+                            0.0005
                         ]
                     ],
-                    "receiver_input_0"
+                    "receiver_input_1"
                 ],
                 "on_timer": [
                     [
@@ -158,10 +175,32 @@
             "transitions": {
                 "on_timer": [
                     [
-                        "save_voltage",
-                        0
+                        "sequence",
+                        [
+                            "_comment",
+                            "store read voltage in register 3"
+                        ],
+                        [
+                            "save_voltage",
+                            3
+                        ],
+                        [
+                            "sub",
+                            3,
+                            0,
+                            3
+                        ],
+                        [
+                            "abs",
+                            3
+                        ],
+                        [
+                            "compare",
+                            3,
+                            2
+                        ]
                     ],
-                    "EMPTY"
+                    "receiver_input_2"
                 ]
             }
         },
