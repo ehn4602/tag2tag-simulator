@@ -205,6 +205,13 @@ def parse_default(vals, default: dict, serializer: StateSerializer) -> dict:
         else:
             print("error: state machine {" + vals[1] + "} does not exist")
             sys.exit(1)
+    elif vals[0] in ["chip_impedances"]:
+        try:
+            default[vals[0]] = list(map(int, vals[1].split(",")))
+        except ValueError:
+            print("error: invalid values for default")
+            sys.exit(1)
+        return default
     print("error:", vals[0], "invalid default argument")
     sys.exit(1)
 
@@ -222,61 +229,63 @@ def parse_args() -> argparse.Namespace:
         nargs=4,
         metavar=("ID", "X", "Y", "Z"),
         required=False,
-        help="Place a tag with a unique ID at coordinates (X, Y, Z)",
+        help="Place a tag with a unique ID at coordinates (X, Y, Z).",
     ),
     parser.add_argument(
         "--exciter",
         nargs=3,
         metavar=("X", "Y", "Z"),
         required=False,
-        help="Moves the exciter to coordinates (X, Y, Z)",
+        help="Moves the exciter to coordinates (X, Y, Z).",
     ),
     parser.add_argument(
-        "--remove", type=str, required=False, help="Removes tag with this specific ID"
+        "--remove", type=str, required=False, help="Removes tag with this specific ID."
     ),
     parser.add_argument(
         "--print",
         type=str,
-        metavar="option",
         choices=["objects", "events", "states", "default"],
-        help='Prints out information. "option" must be "objects", "events", "states", or "default"',
-        required=False,
+        help='Prints out information.',
+        required=False
         # default="default"
     ),
     parser.add_argument(
         "--event",
         nargs=3,
         metavar=("time", "tag", "event_type"),
-        help="Specifies an event that will be simulated",
+        help="Specifies an event that will be simulated.",
     ),
     parser.add_argument(
         "--event_transmission",
+        metavar="transmission",
         nargs=1,
-        help='Adds a transmission to an event. To be appended to an "--event" argument',
+        help='Adds a transmission to an event. To be appended to an "--event" argument.',
     ),
     parser.add_argument(
-        "--event_chip_index",
+        "--event_chip_impedance_index",
         nargs=1,
         help='Adds a chip impedance index to an event. To be appended to an "--event" argument',
     ),
     parser.add_argument(
         "--event_mode",
+        type=str,
+        choices=["listen", "transmit"],
         nargs=1,
-        help='Adds a mode to an event. To be appended to an "--event" argument',
+        help='Adds a mode to an event. To be appended to an "--event" argument.',
     ),
     parser.add_argument(
-        "--default", nargs=2, metavar=("name", "value"), help="Changes a default value"
+        "--default", nargs=2, metavar=("name", "value"), help="Changes a default value."
     ),
-    parser.add_argument("--load", type=str, help="Text file to be loaded in"),
+    parser.add_argument("--load", type=str, help="Text file to be loaded in."),
     parser.add_argument(
         "--add",
         action="store_true",
-        help="Makes loading add onto the existing data rather than overwriting",
+        help="Makes loading add onto the existing data rather than overwriting.",
     ),
     parser.add_argument(
         "--run",
         action="store_true",
-        help="Runs the simulation after all other arguments",
+        help="Runs the simulation after all other arguments.",
     ),
     log_levels = {
         "ERROR": logging.ERROR,
@@ -289,7 +298,7 @@ def parse_args() -> argparse.Namespace:
         type=str,
         choices=log_levels.keys(),
         default="INFO",
-        help="Sets the logging level (default: INFO)",
+        help="Sets the logging level (default: INFO).",
     )
     return parser.parse_args()
 
@@ -406,8 +415,8 @@ def load_txt(filepath: str, app_state: AppState, serializer: StateSerializer):
                         if info[i].lower() == "event_transmission":
                             event_args["transmission"] = info[i + 1]
                             i += 2
-                        elif info[i].lower() == "event_reflection_index":
-                            event_args["reflection_index"] = info[i + 1]
+                        elif info[i].lower() == "event_chip_impedance_index":
+                            event_args["chip_impedance_index"] = info[i + 1]
                             i += 2
                         elif info[i].lower() == "event_mode":
                             event_args["mode"] = info[i + 1]
@@ -598,8 +607,8 @@ def main():
             if event[i].lower() == "event_transmission":
                 event_args["transmission"] = event[i + 1]
                 i += 2
-            elif event[i].lower() == "event_reflection_index":
-                event_args["reflection_index"] = event[i + 1]
+            elif event[i].lower() == "event_chip_impedance_index":
+                event_args["chip_impedance_index"] = event[i + 1]
                 i += 2
             elif event[i].lower() == "event_mode":
                 event_args["mode"] = event[i + 1]
