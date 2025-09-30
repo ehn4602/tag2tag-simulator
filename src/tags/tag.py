@@ -8,11 +8,30 @@ from tags.state_machine import TagMachine
 from util.app_logger import init_tag_logger
 from util.types import Position
 
+def _format_impedance(z) -> str:
+    """
+    Return a compact string for a complex impedance without parentheses,
+    e.g. "20+0j" or "50-25j". If z is already a string, return it unchanged.
+    """
+    if isinstance(z, str):
+        return z
+    # z is expected to be a complex or numeric
+    try:
+        zr = float(z.real)
+        zi = float(z.imag)
+    except Exception:
+        # fallback to str
+        return str(z)
+    sign = '+' if zi >= 0 else ''
+    # use general format to avoid extra decimals
+    return f"{zr:g}{sign}{zi:g}j"
+
+
 
 class TagMode:
     """
     A mode which a tag's antenna can be in. This is a wrapper for an index
-    into a tag's antenna reflection coefficient table. It is assumed that 0
+    into a tag's chip impedance table. It is assumed that 0
     refers to a connection to the envelope detector, or "listening mode".
     """
 
@@ -36,10 +55,10 @@ class TagMode:
         """
         return self._index == TagMode._LISTENING_IDX
 
-    def get_reflection_index(self) -> int:
+    def get_chip_index(self) -> int:
         """
         Returns:
-            index (int): Returns the antenna index associated with this mode.
+            index (int): Returns the chip index associated with this mode.
         """
         return self._index
 
@@ -48,16 +67,16 @@ class TagMode:
             return {"is_listening": True}
         return {
             "is_listening": False,
-            "reflection_index": self.get_reflection_index(),
+            "chip_index": self.get_chip_index(),
         }
 
-    def from_data(mode_str: str, reflection_index: Optional[int]) -> Self:
+    def from_data(mode_str: str, chip_index: Optional[int]) -> Self:
         mode_str = mode_str.upper()
         match (mode_str):
             case "TRANSMIT":
-                if reflection_index is not None:
-                    return TagMode(reflection_index)
-                raise ValueError("TRANSMIT mode requires a reflection_index")
+                if chip_index is not None:
+                    return TagMode(chip_index)
+                raise ValueError("TRANSMIT mode requires a chip_index")
             case "LISTEN":
                 return TagMode.LISTENING
             case _:
@@ -92,7 +111,7 @@ class PhysicsObject:
             pos (Position): The position of this physics object.
             power (float): Power.
             gain (float): Gain.
-            impedance (float): Impedance.
+            impedance (float): Antenna's Impedance.
             frequency (float): Frequency.
         """
         self.app_state = app_state
@@ -130,7 +149,7 @@ class PhysicsObject:
     def get_impedance(self):
         """
         Returns:
-            impedance (float): Impedance.
+            impedance (float): Antenna's Impedance.
         """
         return self.impedance
 
@@ -164,7 +183,7 @@ class Exciter(PhysicsObject):
             pos (Position): The position of this exciter.
             power (float): Power.
             gain (float): Gain.
-            impedance (float): Impedance.
+            impedance (float): Antenna's Impedance.
             frequency (float): Frequency.
         """
         super().__init__(app_state, name, pos, power, gain, impedance, frequency)
@@ -222,8 +241,8 @@ class Tag(PhysicsObject):
         power: float,
         gain: float,
         impedance: float,
+        chip_impedances: list[complex],
         frequency: float,
-        reflection_coefficients: list[complex],
     ):
         """
         Creates a Tag.
@@ -236,14 +255,14 @@ class Tag(PhysicsObject):
             pos (Position): The position of this tag.
             power (float): Power.
             gain (float): Gain.
-            impedance (float): Impedance.
+            impedance (float): Antenna's Impedance.
+            chip_impedances (list[complex]): A list of chip impedances.
             frequency (float): Frequency.
-            reflection_coefficients (list[float]): A list that can be used to look up reflection coefficients by antenna index.
         """
         super().__init__(app_state, name, pos, power, gain, impedance, frequency)
         self.tag_machine = tag_machine
         self.mode = mode
-        self.reflection_coefficients = reflection_coefficients
+        self.chip_impedances = chip_impedances
         self.logger: logging.LoggerAdapter = init_tag_logger(self)
 
     def __str__(self):
@@ -262,7 +281,7 @@ class Tag(PhysicsObject):
         if self.mode.is_listening():
             msg = "Set mode to LISTENING"
         else:
-            msg = f"Set mode to REFLECT with index {self.mode.get_reflection_index()}"
+            msg = f"Set mode to REFLECT with index {self.mode.get_chip_index()}"
         self.logger.info(msg, extra={"mode": self.mode.log_extra()})
 
     def set_mode_listen(self):
@@ -274,9 +293,9 @@ class Tag(PhysicsObject):
     def get_mode(self):
         return self.mode
 
-    def get_reflection_coefficient(self) -> complex:
-        index = self.get_mode().get_reflection_index()
-        return self.reflection_coefficients[index]
+    def get_chip_impedance(self) -> complex:
+        index = self.get_mode().get_chip_index()
+        return self.chip_impedances[index]
 
     def read_voltage(self) -> float:
         tag_manager = self.app_state.tag_manager
@@ -299,8 +318,8 @@ class Tag(PhysicsObject):
             "power": self.power,
             "gain": self.gain,
             "impedance": self.impedance,
+            "chip_impedances": [_format_impedance(x) for x in self.chip_impedances],
             "frequency": self.frequency,
-            "reflection_coefficients": [str(x) for x in self.reflection_coefficients],
         }
 
     @classmethod
@@ -339,8 +358,8 @@ class Tag(PhysicsObject):
             0,
             default["gain"],
             default["impedance"],
+            [complex(x) for x in default["chip_impedances"]],
             default["frequency"],
-            [complex(x) for x in default["reflection_coefficients"]],
         )
         tag_machine.set_tag(tag)
         return tag

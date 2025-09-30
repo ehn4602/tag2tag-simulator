@@ -24,7 +24,7 @@ def plot_modulation_depth():
     plt.xlabel("Distance (meters)")
     plt.ylabel("Modulation Depth")
     plt.grid(True)
-    plt.xlim((2,4))
+    plt.xlim(min(tags), max(tags))
 
     plt.show()
 

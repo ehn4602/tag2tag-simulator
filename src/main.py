@@ -26,7 +26,7 @@ DEFAULT_STATS = {
     "input_machine_id": "UNKNOWN",
     "proccessing_machine_id": "UNKNOWN",
     "output_machine_id": "UNKNOWN",
-    "reflection_coefficients": [],
+    "chip_impedances": [],
 }
 
 
@@ -126,7 +126,7 @@ def save_config(
                     "input_machine_id": default["input_machine_id"],
                     "proccessing_machine_id": default["proccessing_machine_id"],
                     "output_machine_id": default["output_machine_id"],
-                    "reflection_coefficients": default["reflection_coefficients"],
+                    "chip_impedances": default["chip_impedances"],
                 },
                 "Exciter": (
                     Exciter.to_dict(exciter) if exciter is not None else "UNDEFINED"
@@ -205,7 +205,7 @@ def parse_default(vals, default: dict, serializer: StateSerializer) -> dict:
         else:
             print("error: state machine {" + vals[1] + "} does not exist")
             sys.exit(1)
-    elif vals[0] in ["reflection_coefficients"]:
+    elif vals[0] in ["chip_impedances"]:
         try:
             default[vals[0]] = list(map(int, vals[1].split(",")))
         except ValueError:
@@ -262,10 +262,9 @@ def parse_args() -> argparse.Namespace:
         help='Adds a transmission to an event. To be appended to an "--event" argument.',
     ),
     parser.add_argument(
-        "--event_reflection_index",
-        metavar="reflection_index",
+        "--event_chip_impedance_index",
         nargs=1,
-        help='Adds a reflection index to an event. To be appended to an "--event" argument.',
+        help='Adds a chip impedance index to an event. To be appended to an "--event" argument',
     ),
     parser.add_argument(
         "--event_mode",
@@ -389,8 +388,8 @@ def load_txt(filepath: str, app_state: AppState, serializer: StateSerializer):
                         0,
                         default["gain"],
                         default["impedance"],
+                        [complex(x) for x in default["chip_impedances"]],
                         default["frequency"],
-                        default["reflection_coefficients"],
                     )
                     objects[info[1]] = tag
                 elif info[0] == "exciter":
@@ -416,8 +415,8 @@ def load_txt(filepath: str, app_state: AppState, serializer: StateSerializer):
                         if info[i].lower() == "event_transmission":
                             event_args["transmission"] = info[i + 1]
                             i += 2
-                        elif info[i].lower() == "event_reflection_index":
-                            event_args["reflection_index"] = info[i + 1]
+                        elif info[i].lower() == "event_chip_impedance_index":
+                            event_args["chip_impedance_index"] = info[i + 1]
                             i += 2
                         elif info[i].lower() == "event_mode":
                             event_args["mode"] = info[i + 1]
@@ -553,8 +552,8 @@ def main():
                 0,
                 default["gain"],
                 default["impedance"],
+                [complex(x) for x in default["chip_impedances"]],
                 default["frequency"],
-                default["reflection_coefficients"],
             )
             objects[id] = new_obj
             print("Tag:", id, "moved to coordinates", x, y, z)
@@ -608,8 +607,8 @@ def main():
             if event[i].lower() == "event_transmission":
                 event_args["transmission"] = event[i + 1]
                 i += 2
-            elif event[i].lower() == "event_reflection_index":
-                event_args["reflection_index"] = event[i + 1]
+            elif event[i].lower() == "event_chip_impedance_index":
+                event_args["chip_impedance_index"] = event[i + 1]
                 i += 2
             elif event[i].lower() == "event_mode":
                 event_args["mode"] = event[i + 1]
