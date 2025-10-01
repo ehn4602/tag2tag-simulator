@@ -119,6 +119,37 @@
             }
         },
         {
+            "id": "sender_processing_2",
+            "transitions": {
+                "lt": [
+                    [
+                        "_comment",
+                        "no-op"
+                    ],
+                    "sender_processing_1"
+                ],
+                "eq": [
+                    [
+                        "sequence",
+                        [
+                            "_comment",
+                            "clean up"
+                        ],
+                        [
+                            "load_imm",
+                            2,
+                            0
+                        ],
+                        [
+                            "send_int_out",
+                            2
+                        ]
+                    ],
+                    "EMPTY"
+                ]
+            }
+        },
+        {
             "id": "sender_output_0",
             "transitions": {
                 "init": [
@@ -408,48 +439,6 @@
             }
         },
         {
-            "id": "receiver_output_0",
-            "transitions": {
-                "init": [
-                    [
-                        "set_listen"
-                    ],
-                    "EMPTY"
-                ]
-            }
-        },
-        {
-            "id": "sender_processing_2",
-            "transitions": {
-                "lt": [
-                    [
-                        "_comment",
-                        "no-op"
-                    ],
-                    "sender_processing_1"
-                ],
-                "eq": [
-                    [
-                        "sequence",
-                        [
-                            "_comment",
-                            "clean up"
-                        ],
-                        [
-                            "load_imm",
-                            2,
-                            0
-                        ],
-                        [
-                            "send_int_out",
-                            2
-                        ]
-                    ],
-                    "EMPTY"
-                ]
-            }
-        },
-        {
             "id": "receiver_processing_2",
             "transitions": {
                 "eq": [
@@ -475,6 +464,17 @@
                         ]
                     ],
                     "receiver_processing_1"
+                ]
+            }
+        },
+        {
+            "id": "receiver_output_0",
+            "transitions": {
+                "init": [
+                    [
+                        "set_listen"
+                    ],
+                    "EMPTY"
                 ]
             }
         }
