@@ -36,7 +36,7 @@ class PhysicsEngine:
         Initialize the physics engine.
 
         Parameters:
-            exciter (Exciter): The exciter object.
+            exciters (dict[str, Exciter]): The dictionary of exciter objects.
             default_power_on_dbm (float): The default power threshold (in dBm) for a tag to be considered "powered".
             noise_std_volts (float): Standard deviation of Gaussian noise (in volts) added to envelope-detector output.
                                    Default is 0 (no noise).
@@ -80,7 +80,7 @@ class PhysicsEngine:
 
     def get_sig_tx_rx(self, tx: PhysicsObject, rx: Tag):
         """
-        Gets the signal from a tag or exciter to another tag
+        Gets the signal from a tag or an exciter to another tag
 
         Parameters:
             tx (PhysicsObject): The transmitting object.

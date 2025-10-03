@@ -40,7 +40,7 @@ def load_json(
     Loads config file, collecting information the simulator needs to run.
 
     Returns:
-        exciter,tags,events,default: List of information stored in the JSON file.
+        exciters,tags,events,default: List of information stored in the JSON file.
     """
 
     default_exciters = {"defaultEx": Exciter(app_state, "default", (0, 0, 0), DEFAULT_STATS["exciter_power"], DEFAULT_STATS["gain"], DEFAULT_STATS["impedance"], DEFAULT_STATS["frequency"])}
@@ -229,10 +229,10 @@ def parse_args() -> argparse.Namespace:
     ),
     parser.add_argument(
         "--exciter",
-        nargs=3,
-        metavar=("X", "Y", "Z"),
+        nargs=4,
+        metavar=("ID", "X", "Y", "Z"),
         required=False,
-        help="Moves the exciter to coordinates (X, Y, Z).",
+        help="Moves an exciter with a unique ID to coordinates (X, Y, Z).",
     ),
     parser.add_argument(
         "--remove", type=str, required=False, help="Removes tag with this specific ID."
@@ -464,7 +464,7 @@ def main():
     logger, q_listener = init_logger(app_state, args.loglevel, stdout=False)
     load_json(STATE_PATH, serializer)
 
-    main_exciter, objects, events, default = load_json(  # loads configs
+    main_exciters, objects, events, default = load_json(  # loads configs
         CONFIG_PATH, serializer, app_state=app_state
     )
 
@@ -481,20 +481,20 @@ def main():
         file_type = args.load.split(".")[-1]
         if file_type == "txt":
             if args.add:  # appends loaded arguments instead of overwrite
-                temp_exciter, add_objects, add_events, add_default = load_txt(
+                temp_exciters, add_objects, add_events, add_default = load_txt(
                     args.load, app_state, serializer
                 )
                 objects.update(add_objects)
                 default.update(add_default)
                 events = list(heapq.merge(events, add_events, key=lambda x: x[0]))
             else:  # overwrites previouse saved data
-                temp_exciter, objects, events, default = load_txt(
+                temp_exciters, objects, events, default = load_txt(
                     args.load, app_state, serializer
                 )
-            if temp_exciter is not None:
-                main_exciter = temp_exciter
+            if temp_exciters is not None:
+                main_exciters = temp_exciters
         elif file_type == "json":
-            temp_exciter, temp_objects, temp_events, temp_default = load_json(
+            temp_exciters, temp_objects, temp_events, temp_default = load_json(
                 args.load,
                 serializer,
                 default=default,
@@ -504,15 +504,16 @@ def main():
                 objects = temp_objects
                 events = temp_events
                 default = temp_default
-                main_exciter = temp_exciter
+                main_exciters = temp_exciters
             elif temp_default is not None:
                 default = temp_default
         else:
             print("error: file type not supported")
 
     if args.exciter:
-        x, y, z = args.exciter[0:3]
-        main_exciter = Exciters(
+        ident, x, y, z = parse_obj(args.exciter)
+        # x, y, z = args.exciter[0:3]
+        main_exciters[ident] = Exciter(
             app_state,
             "default",
             (x, y, z),
@@ -521,7 +522,7 @@ def main():
             default["impedance"],
             default["frequency"],
         )
-        print("Exciters moved to ", x, y, z)
+        print("Exciter moved to ", x, y, z)
 
     if args.tag:
         if not machine_defined:
@@ -568,8 +569,8 @@ def main():
         lower_args = args.print.lower()
         match lower_args:
             case "objects":
-                if main_exciter is not None:
-                    print("Exciters:", main_exciter.to_dict())
+                if main_exciters is not None:
+                    print("Exciters:", main_exciters.to_dict())
                 else:
                     print("Exciters: Undefined")
                 for key, value in objects.items():
@@ -617,12 +618,12 @@ def main():
         position = bisect.bisect_left(events, new_event)
         events.insert(position, new_event)
 
-    save_config(main_exciter, objects, events, default, serializer)
+    save_config(main_exciters, objects, events, default, serializer)
 
     if len(sys.argv) == 1:
-        run_simulation(app_state, main_exciter, objects, events, default)
+        run_simulation(app_state, main_exciters, objects, events, default)
     elif args.run:
-        run_simulation(app_state, main_exciter, objects, events, default)
+        run_simulation(app_state, main_exciters, objects, events, default)
 
     q_listener.stop()
     logging.shutdown()
