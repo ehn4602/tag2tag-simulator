@@ -522,7 +522,7 @@ def main():
             default["impedance"],
             default["frequency"],
         )
-        print("Exciter moved to ", x, y, z)
+        print("Exciter:", id, "moved to", x, y, z)
 
     if args.tag:
         if not machine_defined:

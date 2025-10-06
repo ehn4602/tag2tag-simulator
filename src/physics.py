@@ -93,7 +93,7 @@ class PhysicsEngine:
         att = sqrt(self.attenuation(distance, wavelen, tx.get_gain(), rx.get_gain()))
         return att * (e ** (1j * 2 * pi * distance / wavelen))
     
-    def power_from_exciter_at_tag_mw(self, tag: Tag) -> float:
+    def power_from_exciters_at_tag_mw(self, tag: Tag) -> float:
         """
         Gets the power (in mW) delivered from the engine's exciter to the tag antenna input using Friis transmission formula
 
@@ -135,7 +135,7 @@ class PhysicsEngine:
             - per-tag attribute `power_on_threshold_dbm` (if present)
             - otherwise uses engine.default_power_on_dbm
         """
-        power_tag_mw = self.power_from_exciter_at_tag_mw(tag)
+        power_tag_mw = self.power_from_exciters_at_tag_mw(tag)
         power_tag_dbm = mW_to_dBm(power_tag_mw)
         threshold_dbm = getattr(tag, "power_on_threshold_dbm", self.default_power_on_dbm)  # TODO Add power_on_threshold_dbm to Tag class
         return power_tag_dbm >= threshold_dbm
