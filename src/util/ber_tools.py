@@ -106,33 +106,6 @@ def optimal_threshold(mean_0: float, std_dev_0: float, mean_1: float, std_dev_1:
         return float(min(candidates, key=lambda x: abs(x - mid)))
     return mid
 
-def monte_carlo_ber(mean_0: float, std_dev_0: float, mean_1: float, std_dev_1: float,
-                    T: float, p_0: float = 0.5, n_samples: int = 200000) -> Tuple[float, float, float]:
-    """
-    Monte Carlo estimate of (P0_err, P1_err, BER) by sampling.
-
-    Parameters:
-        mean_0 (float): Mean of Gaussian for bit 0.
-        std_dev_0 (float): Standard deviation of Gaussian for bit 0.
-        mean_1 (float): Mean of Gaussian for bit 1.
-        std_dev_1 (float): Standard deviation of Gaussian for bit 1.
-        T (float): Decision threshold.
-        p_0 (float): Prior probability of bit 0. Default is 0.
-        n_samples (int): Number of samples to draw. Default is 200,000.
-    Returns:
-        P0_err (float): Probability of error when bit 0 is sent 
-        P1_err (float): Probability of error when bit 1 is sent
-        BER (float): Overall bit error rate.
-    """
-    n0 = int(n_samples * p_0)
-    n1 = n_samples - n0
-    s0 = np.random.normal(mean_0, std_dev_0, size=n0)
-    s1 = np.random.normal(mean_1, std_dev_1, size=n1)
-    P0_err = np.mean(s0 > T)
-    P1_err = np.mean(s1 <= T)
-    BER = p_0 * P0_err + (1 - p_0) * P1_err
-    return P0_err, P1_err, BER
-
 def plot_histograms_with_threshold(s0: np.ndarray, s1: np.ndarray, T: float,
                                    bins: int = 80, show_fit: bool = True):
     """
@@ -164,8 +137,8 @@ def plot_histograms_with_threshold(s0: np.ndarray, s1: np.ndarray, T: float,
 
 
 if __name__ == "__main__":
-    # TODO Change these to your measured values according to logs
-    mean_0, std_dev_0 = 0.03008, 0.00005
+    # TODO Change these to your measured values according to logs(mean_0 HAS GREATER THAN mean_1)
+    mean_0, std_dev_0 = 0.03030, 0.00005
     mean_1, std_dev_1 = 0.03034, 0.00005
     p_0 = 0.5
 
@@ -174,7 +147,6 @@ if __name__ == "__main__":
 
     T_opt = optimal_threshold(mean_0, std_dev_0, mean_1, std_dev_1, p_0, 1-p_0)
     P0o, P1o, BER_opt = analytic_error_probs(T_opt, mean_0, std_dev_0, mean_1, std_dev_1, p_0, 1-p_0)
-    P0_monte, P1_monte, BER_monte = monte_carlo_ber(mean_0, std_dev_0, mean_1, std_dev_1, T_mid, p_0, n_samples=200_000)
 
     # Midpoint and Optimal Thresholds are most likely going to be the same because variance of white noise between both distributions, and 
     # prior probabilities of p_0 and p_1 are going to be the same.
@@ -188,11 +160,10 @@ if __name__ == "__main__":
     print(f"{'-'*40}")
     print(f"Analytic BER at T_mid      : {BER_mid:.6e}")
     print(f"Analytic BER at T_opt      : {BER_opt:.6e}")
-    print(f"Monte Carlo BER at T_mid   : {BER_monte:.6e}")
     print(f"{'='*40}\n")
 
     # Plot sample histograms using synthetic data
     s0 = np.random.normal(mean_0, std_dev_0, size=10000)
     s1 = np.random.normal(mean_1, std_dev_1, size=10000)
-    plot_histograms_with_threshold(s0, s1, T_mid)
+    plot_histograms_with_threshold(s0, s1, T_opt)
 
