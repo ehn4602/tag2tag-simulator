@@ -57,3 +57,7 @@ use to plot the results. This plot shows how phase cancellation can occur from b
 - Owen Avery
 - Aaron Peterham
 - Ingrid Rossetti
+- Ricky Leung
+- Thomas Vilar
+- Joshuah Gyebi
+- Benson Zhou
