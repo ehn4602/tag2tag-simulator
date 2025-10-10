@@ -6,150 +6,6 @@
             "transitions": {}
         },
         {
-            "id": "sender_processing_0",
-            "transitions": {
-                "init": [
-                    [
-                        "sequence",
-                        [
-                            "_comment",
-                            "store message in memory"
-                        ],
-                        [
-                            "store_mem_imm",
-                            0,
-                            [
-                                1,
-                                1,
-                                0,
-                                1,
-                                0,
-                                0,
-                                0,
-                                0,
-                                1,
-                                1,
-                                1,
-                                1,
-                                0,
-                                1
-                            ]
-                        ],
-                        [
-                            "_comment",
-                            "set current transmit index in register 0"
-                        ],
-                        [
-                            "load_imm",
-                            0,
-                            0
-                        ],
-                        [
-                            "_comment",
-                            "set end transmit index in register 1"
-                        ],
-                        [
-                            "load_imm",
-                            1,
-                            14
-                        ],
-                        [
-                            "_comment",
-                            "wait ~4 intervals -- use register 2 as scratch"
-                        ],
-                        [
-                            "load_imm",
-                            2,
-                            35
-                        ],
-                        [
-                            "set_timer",
-                            2
-                        ]
-                    ],
-                    "sender_processing_1"
-                ]
-            }
-        },
-        {
-            "id": "sender_processing_1",
-            "transitions": {
-                "on_queue_up": [
-                    [
-                        "sequence",
-                        [
-                            "_comment",
-                            "use register 2 as scratch"
-                        ],
-                        [
-                            "load_mem",
-                            2,
-                            0
-                        ],
-                        [
-                            "send_int_out",
-                            2
-                        ],
-                        [
-                            "load_imm",
-                            2,
-                            1
-                        ],
-                        [
-                            "add",
-                            0,
-                            0,
-                            2
-                        ],
-                        [
-                            "compare",
-                            0,
-                            1
-                        ]
-                    ],
-                    "sender_processing_2"
-                ],
-                "on_timer": [
-                    [
-                        "self_trigger",
-                        "on_queue_up"
-                    ],
-                    "sender_processing_1"
-                ]
-            }
-        },
-        {
-            "id": "sender_processing_2",
-            "transitions": {
-                "lt": [
-                    [
-                        "_comment",
-                        "no-op"
-                    ],
-                    "sender_processing_1"
-                ],
-                "eq": [
-                    [
-                        "sequence",
-                        [
-                            "_comment",
-                            "clean up"
-                        ],
-                        [
-                            "load_imm",
-                            2,
-                            0
-                        ],
-                        [
-                            "send_int_out",
-                            2
-                        ]
-                    ],
-                    "EMPTY"
-                ]
-            }
-        },
-        {
             "id": "sender_output_0",
             "transitions": {
                 "init": [
@@ -375,6 +231,150 @@
             }
         },
         {
+            "id": "sender_processing_0",
+            "transitions": {
+                "init": [
+                    [
+                        "sequence",
+                        [
+                            "_comment",
+                            "store message in memory"
+                        ],
+                        [
+                            "store_mem_imm",
+                            0,
+                            [
+                                1,
+                                1,
+                                0,
+                                1,
+                                0,
+                                0,
+                                0,
+                                0,
+                                1,
+                                1,
+                                1,
+                                1,
+                                0,
+                                1
+                            ]
+                        ],
+                        [
+                            "_comment",
+                            "set current transmit index in register 0"
+                        ],
+                        [
+                            "load_imm",
+                            0,
+                            0
+                        ],
+                        [
+                            "_comment",
+                            "set end transmit index in register 1"
+                        ],
+                        [
+                            "load_imm",
+                            1,
+                            14
+                        ],
+                        [
+                            "_comment",
+                            "wait ~4 intervals -- use register 2 as scratch"
+                        ],
+                        [
+                            "load_imm",
+                            2,
+                            35
+                        ],
+                        [
+                            "set_timer",
+                            2
+                        ]
+                    ],
+                    "sender_processing_1"
+                ]
+            }
+        },
+        {
+            "id": "sender_processing_1",
+            "transitions": {
+                "on_queue_up": [
+                    [
+                        "sequence",
+                        [
+                            "_comment",
+                            "use register 2 as scratch"
+                        ],
+                        [
+                            "load_mem",
+                            2,
+                            0
+                        ],
+                        [
+                            "send_int_out",
+                            2
+                        ],
+                        [
+                            "load_imm",
+                            2,
+                            1
+                        ],
+                        [
+                            "add",
+                            0,
+                            0,
+                            2
+                        ],
+                        [
+                            "compare",
+                            0,
+                            1
+                        ]
+                    ],
+                    "sender_processing_2"
+                ],
+                "on_timer": [
+                    [
+                        "self_trigger",
+                        "on_queue_up"
+                    ],
+                    "sender_processing_1"
+                ]
+            }
+        },
+        {
+            "id": "sender_processing_2",
+            "transitions": {
+                "lt": [
+                    [
+                        "_comment",
+                        "no-op"
+                    ],
+                    "sender_processing_1"
+                ],
+                "eq": [
+                    [
+                        "sequence",
+                        [
+                            "_comment",
+                            "clean up"
+                        ],
+                        [
+                            "load_imm",
+                            2,
+                            0
+                        ],
+                        [
+                            "send_int_out",
+                            2
+                        ]
+                    ],
+                    "EMPTY"
+                ]
+            }
+        },
+        {
             "id": "receiver_processing_0",
             "transitions": {
                 "init": [
@@ -475,6 +475,59 @@
                         "set_listen"
                     ],
                     "EMPTY"
+                ]
+            }
+        },
+        {
+            "id": "A",
+            "transitions": {
+                "1": [
+                    [
+                        "A-> Input(1) to B",
+                        2
+                    ],
+                    "B"
+                ]
+            }
+        },
+        {
+            "id": "B",
+            "transitions": {
+                "0": [
+                    [
+                        "B-> Input(0) back to A"
+                    ],
+                    "A"
+                ],
+                "1": [
+                    [
+                        "B-> Input(1) to C"
+                    ],
+                    "C"
+                ]
+            }
+        },
+        {
+            "id": "C",
+            "transitions": {
+                "32": [
+                    [
+                        "C->input(32) to D",
+                        1,
+                        2
+                    ],
+                    "D"
+                ]
+            }
+        },
+        {
+            "id": "D",
+            "transitions": {
+                "12": [
+                    [
+                        "d->input(12) to A"
+                    ],
+                    "A"
                 ]
             }
         }

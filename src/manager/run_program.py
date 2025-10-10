@@ -36,7 +36,7 @@ def run_events(app_state: AppState, events: list[Event]):
 # TODO: is default needed as an argument?
 def run_simulation(
     app_state: AppState,
-    main_exciter: Exciter,
+    exciters: dict[str, Exciter],
     tags: dict[str, Tag],
     events: list[Event],
     default,
@@ -46,12 +46,12 @@ def run_simulation(
 
     Args:
         app_state (AppState): The app state.
-        main_exciter (Exciter): An exciter.
+        exciters (dict[str, Exciter]): A dictionary of exciters.
         tags (dict[str, Tag]): A dictionary of tags to simulate, indexed by tag name.
         events (list[Event]): A list of events to simulate.
         default (Any): Default values, currently unused.
     """
-    app_state.set_tag_manager(TagManager(main_exciter, tags=tags))
+    app_state.set_tag_manager(TagManager(exciters=exciters, tags=tags))
     env = app_state.env
 
     env.process(run_events(app_state, events))

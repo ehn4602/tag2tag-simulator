@@ -28,7 +28,7 @@ def dbi_to_linear(dbi: float) -> float:
 class PhysicsEngine:
     def __init__(
         self, 
-        exciter: Exciter,
+        exciters: dict[str, Exciter],
         default_power_on_dbm: float = -100.0,  # TODO make this configurable per-tag and find a good default
         noise_std_volts: float = 0,  # 0.0001 is 0.1 mV noise
     ):
@@ -36,12 +36,12 @@ class PhysicsEngine:
         Initialize the physics engine.
 
         Parameters:
-            exciter (Exciter): The exciter object.
+            exciters (dict[str, Exciter]): The dictionary of exciter objects.
             default_power_on_dbm (float): The default power threshold (in dBm) for a tag to be considered "powered".
             noise_std_volts (float): Standard deviation of Gaussian noise (in volts) added to envelope-detector output.
                                    Default is 0 (no noise).
         """
-        self.exciter = exciter
+        self.exciters = exciters
         self.default_power_on_dbm = default_power_on_dbm
         self.noise_std_volts = noise_std_volts
 
@@ -80,7 +80,7 @@ class PhysicsEngine:
 
     def get_sig_tx_rx(self, tx: PhysicsObject, rx: Tag):
         """
-        Gets the signal from a tag or exciter to another tag
+        Gets the signal from a tag or an exciter to another tag
 
         Parameters:
             tx (PhysicsObject): The transmitting object.
@@ -93,7 +93,7 @@ class PhysicsEngine:
         att = sqrt(self.attenuation(distance, wavelen, tx.get_gain(), rx.get_gain()))
         return att * (e ** (1j * 2 * pi * distance / wavelen))
     
-    def power_from_exciter_at_tag_mw(self, tag: Tag) -> float:
+    def power_from_exciters_at_tag_mw(self, tag: Tag) -> float:
         """
         Gets the power (in mW) delivered from the engine's exciter to the tag antenna input using Friis transmission formula
 
@@ -108,16 +108,19 @@ class PhysicsEngine:
 
         # TODO Check if gains are in linear directivities or dBi(if DBI, convert to linear)
         """
-        ex = self.exciter
-        power_tx_mw = ex.get_power()
-        if power_tx_mw <= 0:
-            return 0.0
+        exs = self.exciters
+        power_rxs = 0.0
+        for ex in exs.values():
+            power_tx_mw = ex.get_power()
+            if power_tx_mw <= 0:
+                continue
         
-        distance = dist.euclidean(ex.get_position(), tag.get_position())
-        wavelength = c / ex.get_frequency()
+            distance = dist.euclidean(ex.get_position(), tag.get_position())
+            wavelength = c / ex.get_frequency()
 
-        power_rx = power_tx_mw * self.attenuation(distance, wavelength, ex.get_gain(), tag.get_gain())
-        return max(power_rx, 0.0)
+            power_rx = power_tx_mw * self.attenuation(distance, wavelength, ex.get_gain(), tag.get_gain())
+            power_rxs += max(power_rx, 0.0)
+        return power_rxs
     
     def is_tag_powered(self, tag: Tag) -> bool:
         """
@@ -132,7 +135,7 @@ class PhysicsEngine:
             - per-tag attribute `power_on_threshold_dbm` (if present)
             - otherwise uses engine.default_power_on_dbm
         """
-        power_tag_mw = self.power_from_exciter_at_tag_mw(tag)
+        power_tag_mw = self.power_from_exciters_at_tag_mw(tag)
         power_tag_dbm = mW_to_dBm(power_tag_mw)
         threshold_dbm = getattr(tag, "power_on_threshold_dbm", self.default_power_on_dbm)  # TODO Add power_on_threshold_dbm to Tag class
         return power_tag_dbm >= threshold_dbm
@@ -183,24 +186,24 @@ class PhysicsEngine:
         Returns:
             float: The voltage at the receiving tag's envelope detector input.
         """
-        ex = self.exciter
+        exs = self.exciters
         rx_impedance = receiving_tag.get_impedance()
 
         # This will be summed later
         sigs_to_rx = []
-        sigs_to_rx.append(self.get_sig_tx_rx(ex, receiving_tag))
+        for ex in exs.values():
+            sigs_to_rx.append(self.get_sig_tx_rx(ex, receiving_tag))
+            for tag in tags.values():
+                if tag is receiving_tag:
+                    continue
 
-        for tag in tags.values():
-            if tag is receiving_tag:
-                continue
+                reflection_coeff = self.effective_reflection_coefficient(tag)
+                if abs(reflection_coeff) < 1e-6:
+                    continue
 
-            reflection_coeff = self.effective_reflection_coefficient(tag)
-            if abs(reflection_coeff) < 1e-6:
-                continue
-
-            sig_ex_tx = self.get_sig_tx_rx(ex, tag)
-            sig_tx_rx = self.get_sig_tx_rx(tag, receiving_tag)
-            sigs_to_rx.append(sig_ex_tx * reflection_coeff * sig_tx_rx)
+                sig_ex_tx = self.get_sig_tx_rx(ex, tag)
+                sig_tx_rx = self.get_sig_tx_rx(tag, receiving_tag)
+                sigs_to_rx.append(sig_ex_tx * reflection_coeff * sig_tx_rx)
 
         pwr_received = abs(sum(sigs_to_rx))
         v_pk = sqrt(abs(rx_impedance * pwr_received) / 500.0)
