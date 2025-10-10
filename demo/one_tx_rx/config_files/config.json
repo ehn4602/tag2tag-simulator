@@ -14,15 +14,17 @@
             "1+0j"
         ]
     },
-    "Exciter": {
-        "id": "default",
-        "x": 10.0,
-        "y": 10.0,
-        "z": 10.0,
-        "power": 1,
-        "gain": 100,
-        "impedance": 50.0,
-        "frequency": 1000000
+    "Exciters": {
+        "Exciter": {
+            "id": "default",
+            "x": 10.0,
+            "y": 10.0,
+            "z": 10.0,
+            "power": 1,
+            "gain": 100,
+            "impedance": 50.0,
+            "frequency": 1000000
+        }
     },
     "Objects": {
         "Sender": {
