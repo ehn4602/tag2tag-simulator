@@ -67,17 +67,17 @@ def load_json(
             if raw_exciters:
                 # exciter = Exciter.from_dict(app_state, raw_exciters.get(next(iter(raw_exciters))))
 
-                exciter = {
+                exciters = {
                     id: Exciter.from_dict(app_state, raw_exciters.get(id))
                     for id, val in raw_exciters.items()
                 }
             else:
-                exciter = default_exciters
+                exciters = default_exciters
             tags = {
                 id: Tag.from_dict(app_state, id, val, serializer, default)
                 for id, val in raw_objects.items()
             }
-            return exciter, tags, None, default
+            return exciters, tags, None, default
         elif format == "state_machine":
             state_output = load_states(raw_data, serializer, default)
             if state_output is not None:
@@ -349,7 +349,7 @@ def load_txt(filepath: str, app_state: AppState, serializer: StateSerializer):
     default = DEFAULT_STATS
     events = []
     objects = {}
-    exciter = None
+    exciters = None
     if os.path.exists(filepath):
         with open(filepath, "r") as f:
             lines = f.readlines()
@@ -389,7 +389,7 @@ def load_txt(filepath: str, app_state: AppState, serializer: StateSerializer):
                     )
                     objects[info[1]] = tag
                 elif info[0] == "exciter":
-                    exciter = Exciters(
+                    exciters = Exciters(
                         app_state,
                         "default",
                         info[1:4],
@@ -435,7 +435,7 @@ def load_txt(filepath: str, app_state: AppState, serializer: StateSerializer):
                         elif raw_data.get("Format") == "events":
                             events: List[Event] = load_events(raw_data.get("Events"))
                         elif raw_data.get("Format") == "config":
-                            exciter, objects, _, default = load_json(  # loads configs
+                            exciters, objects, _, default = load_json(  # loads configs
                                 info[1],
                                 serializer,
                                 app_state=app_state,
@@ -446,7 +446,7 @@ def load_txt(filepath: str, app_state: AppState, serializer: StateSerializer):
                     else:
                         print("File path: ", info[1], " not found in ", filepath)
             print(filepath, "successfully loaded")
-            return exciter, objects, events, default
+            return exciters, objects, events, default
 
 
 def main():
