@@ -1,6 +1,7 @@
 from __future__ import annotations
 from math import sqrt, log10
 from typing import TYPE_CHECKING, Iterable
+import numpy as np
 
 import scipy.spatial.distance as dist
 from scipy.constants import c, e, pi
