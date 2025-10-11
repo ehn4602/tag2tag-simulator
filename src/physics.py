@@ -168,45 +168,66 @@ class PhysicsEngine:
         return gamma
 
 
-    def voltage_at_tag(self, tags: dict[str, Tag], receiving_tag: Tag, include_helpers: bool = True) -> float:
+    def voltage_at_tag(self, tags: dict[str, Tag], receiving_tag: Tag) -> float:
         """
         Get's the total voltage delivered to a given tag by the rest of the
-        tags. This currently makes the assumption that there are no feedback
-        loops in the backscatter for simplicity.  
-        # TODO Look into feedback loops
-        # TODO Look into include_helpers parameter
+        tags.
 
         Parameters:
             tags (dict[str, Tag]): A dictionary of all the tags in the simulation.
             receiving_tag (Tag): The tag to get the voltage for.
-            include_helpers (bool): Whether to include helper tags in the calculation.
         Returns:
             float: The voltage at the receiving tag's envelope detector input.
         """
         ex = self.exciter
         rx_impedance = receiving_tag.get_impedance()
 
-        # This will be summed later
-        sigs_to_rx = []
-        sigs_to_rx.append(self.get_sig_tx_rx(ex, receiving_tag))
+        # --- Collect all tag names ---
+        tag_names = list(tags.keys())
+        if receiving_tag.get_name() not in tag_names:
+            tag_names.append(receiving_tag.get_name())
 
-        for tag in tags.values():
-            if tag is receiving_tag:
-                continue
+        n = len(tag_names)
+        if n == 0:
+            return 0.0
 
-            reflection_coeff = self.effective_reflection_coefficient(tag)
-            if abs(reflection_coeff) < 1e-6:
-                continue
+        # --- Build H matrix (channel gains between tags) ---
+        H = np.zeros((n, n), dtype=np.complex128)
+        for i, name_i in enumerate(tag_names):
+            tag_i = tags[name_i] if name_i in tags else receiving_tag
+            for j, name_j in enumerate(tag_names):
+                if i == j:
+                    continue
+                tag_j = tags[name_j] if name_j in tags else receiving_tag
+                H[i, j] = self.get_sig_tx_rx(tag_j, tag_i)
 
-            sig_ex_tx = self.get_sig_tx_rx(ex, tag)
-            sig_tx_rx = self.get_sig_tx_rx(tag, receiving_tag)
-            sigs_to_rx.append(sig_ex_tx * reflection_coeff * sig_tx_rx)
+        # --- Build reflection coefficients Γ ---
+        gammas = np.zeros(n, dtype=np.complex128)
+        for j, name_j in enumerate(tag_names):
+            tag_j = tags[name_j] if name_j in tags else receiving_tag
+            gammas[j] = self.effective_reflection_coefficient(tag_j)
+        Gamma = np.diag(gammas)
 
-        pwr_received = abs(sum(sigs_to_rx))
+        # --- Build exciter contribution vector h_exciter ---
+        h_exciter = np.zeros(n, dtype=np.complex128)
+        for i, name_i in enumerate(tag_names):
+            tag_i = tags[name_i] if name_i in tags else receiving_tag
+            h_exciter[i] = self.get_sig_tx_rx(ex, tag_i)
+
+        # --- Solve for steady-state field: S = (I - HΓ)^(-1) h_exciter ---
+        I = np.eye(n, dtype=np.complex128)
+        A = I - H @ Gamma
+        S = np.linalg.solve(A, h_exciter)
+
+        # --- Extract field at receiving tag ---
+        rx_field = S[tag_names.index(receiving_tag.get_name())]
+        pwr_received = abs(rx_field)
+
+        # --- Convert to voltage ---
         v_pk = sqrt(abs(rx_impedance * pwr_received) / 500.0)
         v_rms = v_pk / sqrt(2.0)
 
-        # Add optional AWGN noise (applied to the RMS read-out)
+        # --- Add optional AWGN noise ---
         if self.noise_std_volts and self.noise_std_volts > 0.0:
             v_rms = max(0.0, random.gauss(v_rms, self.noise_std_volts))
 
