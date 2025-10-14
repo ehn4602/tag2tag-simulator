@@ -46,6 +46,16 @@ class PhysicsEngine:
         self.default_power_on_dbm = default_power_on_dbm
         self.noise_std_volts = noise_std_volts
 
+        # Tag topology caching
+        self._cached_state = {
+            "tag_names": None,
+            "H": None,
+            "Gamma": None,
+            "h_exciter": None,
+            "S": None,
+            "hash": None,  # unique snapshot of topology + reflection coeffs
+        }
+
     def attenuation(
         self, distance: float, wavelength: float, tx_gain_dbi=1.0, rx_gain_dbi=1.0
     ) -> float:
@@ -168,11 +178,29 @@ class PhysicsEngine:
 
         return gamma
 
+    def _compute_state_hash(self, tags):
+        """
+        Compute a hash representing the current state of the tags (positions and impedances).
+
+        Parameters:
+            tags (dict[str, Tag]): A dictionary of all the tags in the simulation.
+        Returns:
+            int: A hash value representing the current state.
+        """
+        data = []
+        for tag in tags.values():
+            pos = tag.get_position()
+            z_chip = tag.get_chip_impedance()
+            z_ant = tag.get_impedance()
+            data.extend([*pos, complex(z_chip), complex(z_ant)])
+        return hash(tuple(round(float(x.real if isinstance(x, complex) else x), 8) for x in data))
+
 
     def voltage_at_tag(self, tags: dict[str, Tag], receiving_tag: Tag) -> float:
         """
         Get's the total voltage delivered to a given tag by the rest of the
         tags.
+        # TODO Compare this to iteratively finding feedback loops(e.g. bouncing back and forth until difference is small)
 
         Parameters:
             tags (dict[str, Tag]): A dictionary of all the tags in the simulation.
@@ -183,7 +211,6 @@ class PhysicsEngine:
         ex = self.exciter
         rx_impedance = receiving_tag.get_impedance()
 
-        # --- Collect all tag names ---
         tag_names = list(tags.keys())
         if receiving_tag.get_name() not in tag_names:
             tag_names.append(receiving_tag.get_name())
@@ -192,43 +219,58 @@ class PhysicsEngine:
         if n == 0:
             return 0.0
 
-        # --- Build H matrix (channel gains between tags) ---
-        H = np.zeros((n, n), dtype=np.complex128)
-        for i, name_i in enumerate(tag_names):
-            tag_i = tags[name_i] if name_i in tags else receiving_tag
+        state_hash = self._compute_state_hash(tags)
+
+        # Check if we can use cached result
+        if self._cached_state["hash"] == state_hash and self._cached_state["S"] is not None and self._cached_state["tag_names"] == tag_names:
+            S = self._cached_state["S"]
+        else:
+            # Create H matrix
+            H = np.zeros((n, n), dtype=np.complex128)
+            for i, name_i in enumerate(tag_names):
+                tag_i = tags[name_i] if name_i in tags else receiving_tag
+                for j, name_j in enumerate(tag_names):
+                    if i == j:
+                        continue
+                    tag_j = tags[name_j] if name_j in tags else receiving_tag
+                    H[i, j] = self.get_sig_tx_rx(tag_j, tag_i)
+
+            # Create Γ
+            gammas = np.zeros(n, dtype=np.complex128)
             for j, name_j in enumerate(tag_names):
-                if i == j:
-                    continue
                 tag_j = tags[name_j] if name_j in tags else receiving_tag
-                H[i, j] = self.get_sig_tx_rx(tag_j, tag_i)
+                gammas[j] = self.effective_reflection_coefficient(tag_j)
+            Gamma = np.diag(gammas)
 
-        # --- Build reflection coefficients Γ ---
-        gammas = np.zeros(n, dtype=np.complex128)
-        for j, name_j in enumerate(tag_names):
-            tag_j = tags[name_j] if name_j in tags else receiving_tag
-            gammas[j] = self.effective_reflection_coefficient(tag_j)
-        Gamma = np.diag(gammas)
+            # Create h_exciter
+            h_exciter = np.zeros(n, dtype=np.complex128)
+            for i, name_i in enumerate(tag_names):
+                tag_i = tags[name_i] if name_i in tags else receiving_tag
+                h_exciter[i] = self.get_sig_tx_rx(ex, tag_i)
 
-        # --- Build exciter contribution vector h_exciter ---
-        h_exciter = np.zeros(n, dtype=np.complex128)
-        for i, name_i in enumerate(tag_names):
-            tag_i = tags[name_i] if name_i in tags else receiving_tag
-            h_exciter[i] = self.get_sig_tx_rx(ex, tag_i)
+            # Solve S = (I - HΓ)^(-1) h_exciter 
+            I = np.eye(n, dtype=np.complex128)
+            A = I - H @ Gamma
+            S = np.linalg.solve(A, h_exciter)
 
-        # --- Solve for steady-state field: S = (I - HΓ)^(-1) h_exciter ---
-        I = np.eye(n, dtype=np.complex128)
-        A = I - H @ Gamma
-        S = np.linalg.solve(A, h_exciter)
+            # Cache the new state
+            self._cached_state.update({
+                "tag_names": tag_names,
+                "H": H,
+                "Gamma": Gamma,
+                "h_exciter": h_exciter,
+                "S": S,
+                "hash": state_hash,
+            })
 
-        # --- Extract field at receiving tag ---
         rx_field = S[tag_names.index(receiving_tag.get_name())]
         pwr_received = abs(rx_field)
 
-        # --- Convert to voltage ---
+        # Convert to voltage
         v_pk = sqrt(abs(rx_impedance * pwr_received) / 500.0)
         v_rms = v_pk / sqrt(2.0)
 
-        # --- Add optional AWGN noise ---
+        # AWGN
         if self.noise_std_volts and self.noise_std_volts > 0.0:
             v_rms = max(0.0, random.gauss(v_rms, self.noise_std_volts))
 
