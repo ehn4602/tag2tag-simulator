@@ -1,0 +1,79 @@
+{
+    "Format": "config",
+    "Default": {
+        "exciter_power": 50.0,
+        "gain": 0,
+        "impedance": 50.0,
+        "frequency": 900000000.0,
+        "input_machine_id": "A",
+        "proccessing_machine_id": "A",
+        "output_machine_id": "B",
+        "chip_impedances": [
+            "0j",
+            "0j",
+            "1+0j"
+        ]
+    },
+    "Exciters": {
+        "Exciter1": {
+            "id": "default",
+            "x": 0.0,
+            "y": 10.0,
+            "z": 0.0,
+            "power": 1,
+            "gain": 100,
+            "impedance": 50.0,
+            "frequency": 900000000.0
+        },
+        "Exciter2": {
+	        "id": "defaulter",
+            "x": 0.0,
+            "y": -10.0,
+            "z": 0.0,
+            "power": 1,
+            "gain": 100,
+            "impedance": 50.0,
+            "frequency": 900000000.0
+        }
+    },
+    "Objects": {
+        "Sender": {
+            "tag_machine": {
+                "input_machine": "EMPTY",
+                "processing_machine": "sender_processing_0",
+                "output_machine": "sender_output_0"
+            },
+            "x": -10.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "chip_impedances": [
+                "0j",
+                "0j",
+                "1+0j"
+            ],
+            "frequency": 900000000.0
+        },
+        "Receiver": {
+            "tag_machine": {
+                "input_machine": "receiver_input_0",
+                "processing_machine": "receiver_processing_0",
+                "output_machine": "receiver_output_0"
+            },
+            "x": 10.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "chip_impedances": [
+                "0j",
+                "0j",
+                "1+0j"
+            ],
+            "frequency": 900000000.0
+        }
+    }
+}

@@ -95,7 +95,7 @@ class PhysicsEngine:
     
     def power_from_exciters_at_tag_mw(self, tag: Tag) -> float:
         """
-        Gets the power (in mW) delivered from the engine's exciter to the tag antenna input using Friis transmission formula
+        Gets the power (in mW) delivered from the engine's exciters to the tag antenna input using Friis transmission formula
 
         Parameters:
             tag (Tag): The receiving tag.
