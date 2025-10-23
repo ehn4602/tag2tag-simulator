@@ -1,3 +1,0 @@
-load demo/small_tags_in_a_line/config_files/states.json
-load demo/small_tags_in_a_line/config_files/events.json
-load demo/small_tags_in_a_line/config_files/config.json
