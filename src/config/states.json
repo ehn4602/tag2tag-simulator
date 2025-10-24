@@ -477,6 +477,22 @@
                     "EMPTY"
                 ]
             }
+        },
+        {
+            "id": "tx1_processing_0",
+            "transitions": {}
+        },
+        {
+            "id": "tx1_output_0",
+            "transitions": {}
+        },
+        {
+            "id": "tx2_processing_0",
+            "transitions": {}
+        },
+        {
+            "id": "tx2_output_0",
+            "transitions": {}
         }
     ]
 }
