@@ -9,9 +9,9 @@
         "proccessing_machine_id": "receiver_processing_0",
         "output_machine_id": "receiver_output_0",
         "chip_impedances": [
-            "20+0j",
-            "200+0j",
-            "50+50j"
+            "50+0j",
+            "0+50j",
+            "-50+0j"
         ]
     },
     "Exciter": {
@@ -19,8 +19,8 @@
         "x": 0.0,
         "y": 0.0,
         "z": 1.0,
-        "power": 1.0,
-        "gain": 0.0,
+        "power": 250.0,
+        "gain": 6.0,
         "impedance": 50.0,
         "frequency": 900000000.0
     },
@@ -38,9 +38,9 @@
             "gain": 0,
             "impedance": 50.0,
             "chip_impedances": [
-                "20+0j",
-                "200+0j",
-                "50+50j"
+                "50+0j",
+                "0+50j",
+                "-50+0j"
             ],
             "frequency": 900000000.0
         },
@@ -57,9 +57,9 @@
             "gain": 0,
             "impedance": 50.0,
             "chip_impedances": [
-                "20+0j",
-                "200+0j",
-                "50+50j"
+                "50+0j",
+                "0+50j",
+                "-50+0j"
             ],
             "frequency": 900000000.0
         },
@@ -76,9 +76,9 @@
             "gain": 0,
             "impedance": 50.0,
             "chip_impedances": [
-                "20+0j",
-                "200+0j",
-                "50+50j"
+                "50+0j",
+                "0+50j",
+                "-50+0j"
             ],
             "frequency": 900000000.0
         }

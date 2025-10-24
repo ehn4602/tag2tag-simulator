@@ -243,7 +243,7 @@ class Tag(PhysicsObject):
         impedance: float,
         chip_impedances: list[complex],
         frequency: float,
-        power_on_threshold_dbm: float = -10.0,
+        power_on_threshold_dbm: float = -20.0,
     ):
         """
         Creates a Tag.
@@ -348,6 +348,11 @@ class Tag(PhysicsObject):
             tag: returns tag loaded from JSON
         """
         tag_machine = TagMachine.from_dict(app_state, data["tag_machine"], serializer)
+        # prefer per-tag values; fall back to Default section
+        chip_imp_list = data.get("chip_impedances", default.get("chip_impedances", []))
+        freq = data.get("frequency", default.get("frequency"))
+        pthr = data.get("power_on_threshold_dbm", default.get("power_on_threshold_dbm", -20.0))
+
         tag = cls(
             app_state,
             name,
@@ -361,9 +366,9 @@ class Tag(PhysicsObject):
             0,
             default["gain"],
             default["impedance"],
-            [complex(x) for x in default["chip_impedances"]],
-            default["frequency"],
-            default.get("power_on_threshold_dbm", -10.0),
+            [complex(x) for x in chip_imp_list],
+            freq,
+            pthr,
         )
         tag_machine.set_tag(tag)
         return tag

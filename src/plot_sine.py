@@ -27,6 +27,8 @@ def run_feedback_phase_sweep():
 
     results = []
 
+    phase_shifts = {0: 0, 1: 90, 2: 180}
+
     num_modes_tx1 = len(tx1.chip_impedances)
     num_modes_tx2 = len(tx2.chip_impedances)
 
@@ -34,6 +36,12 @@ def run_feedback_phase_sweep():
         tx1.set_mode(TagMode(i))  # Use the index as mode
         for j in range(num_modes_tx2):
             tx2.set_mode(TagMode(j))
+
+            # Debug prints
+            print(f"\nTX1 (mode {i}) reflection: {physics_engine.effective_reflection_coefficient(tx1)}")
+            print(f"TX2 (mode {j}) reflection: {physics_engine.effective_reflection_coefficient(tx2)}")
+            print(f"TX1 powered: {physics_engine.is_tag_powered(tx1)}")
+            print(f"TX2 powered: {physics_engine.is_tag_powered(tx2)}")
 
             v_rx = physics_engine.voltage_at_tag(tags, rx)
 
@@ -46,14 +54,17 @@ def run_feedback_phase_sweep():
             results.append({
                 "tx1_mode": i,
                 "tx2_mode": j,
-                "v_rx_volts": v_rx
+                "tx1_phase": phase_shifts.get(i, 0),
+                "tx2_phase": phase_shifts.get(j, 0),
+                "v_rx_volts": v_rx,
+                "total_phase": total_phase
             })
 
             print(f"TX1={i}, TX2={j} → Vrx={v_rx:.6f} V")
 
     # Save CSV
     with open(OUTPUT_CSV, "w", newline="") as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=["tx1_mode", "tx2_mode", "v_rx_volts"])
+        writer = csv.DictWriter(csvfile, fieldnames=["tx1_mode","tx2_mode","tx1_phase","tx2_phase","v_rx_volts","total_phase"])
         writer.writeheader()
         writer.writerows(results)
 
@@ -64,7 +75,7 @@ def plot_results(results):
     """
     Bar plot of RX voltage for each TX mode combination.
     """
-    labels = [f"{r['tx1_mode']},{r['tx2_mode']}" for r in results]
+    labels = [f"{r['tx1_phase']}°,{r['tx2_phase']}°" for r in results]
     values = [r["v_rx_volts"] for r in results]
 
     plt.figure(figsize=(10, 5))
