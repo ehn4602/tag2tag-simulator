@@ -23,6 +23,7 @@ DEFAULT_STATS = {
     "gain": 0.0,
     "impedance": 50,
     "frequency": 100,
+    "passive_ref_mag": 0.01,
     "input_machine_id": "UNKNOWN",
     "proccessing_machine_id": "UNKNOWN",
     "output_machine_id": "UNKNOWN",
@@ -43,7 +44,17 @@ def load_json(
         exciters,tags,events,default: List of information stored in the JSON file.
     """
 
-    default_exciters = {"defaultEx": Exciter(app_state, "default", (0, 0, 0), DEFAULT_STATS["exciter_power"], DEFAULT_STATS["gain"], DEFAULT_STATS["impedance"], DEFAULT_STATS["frequency"])}
+    default_exciters = {
+        "defaultEx": Exciter(
+            app_state,
+            "default",
+            (0, 0, 0),
+            DEFAULT_STATS["exciter_power"],
+            DEFAULT_STATS["gain"],
+            DEFAULT_STATS["impedance"],
+            DEFAULT_STATS["frequency"],
+        )
+    }
     if os.path.exists(file_input):
         with open(file_input, "r") as f:
             try:
@@ -61,7 +72,7 @@ def load_json(
         format = raw_data.get("Format")
         if format == "config":
             raw_objects = raw_data.get("Objects", {})
-            raw_exciters = raw_data.get("Exciters", {});
+            raw_exciters = raw_data.get("Exciters", {})
 
             default = raw_data.get("Default")
             if raw_exciters:
@@ -121,6 +132,7 @@ def save_config(
                     "gain": 0,  # (dBi) Isotropic by default
                     "impedance": default["impedance"],  # (ohms),
                     "frequency": default["frequency"],  # Unit?
+                    "passive_ref_mag": default["passive_ref_mag"],
                     "input_machine_id": default["input_machine_id"],
                     "proccessing_machine_id": default["proccessing_machine_id"],
                     "output_machine_id": default["output_machine_id"],
@@ -183,7 +195,13 @@ def parse_default(vals, default: dict, serializer: StateSerializer) -> dict:
     Returns:
         default (dict): Updated dictionary.
     """
-    if vals[0].lower() in ["exciter_power", "impedance", "gain", "frequency"]:
+    if vals[0].lower() in [
+        "exciter_power",
+        "impedance",
+        "gain",
+        "frequency",
+        "passive_ref_mag",
+    ]:
         try:
             val = float(vals[1])
             default[vals[0]] = val
@@ -241,8 +259,8 @@ def parse_args() -> argparse.Namespace:
         "--print",
         type=str,
         choices=["objects", "events", "states", "default"],
-        help='Prints out information.',
-        required=False
+        help="Prints out information.",
+        required=False,
         # default="default"
     ),
     parser.add_argument(

@@ -51,7 +51,11 @@ def run_simulation(
         events (list[Event]): A list of events to simulate.
         default (Any): Default values, currently unused.
     """
-    app_state.set_tag_manager(TagManager(exciters=exciters, tags=tags))
+    app_state.set_tag_manager(
+        TagManager(
+            exciters=exciters, tags=tags, passive_ref_mag=default["passive_ref_mag"]
+        )
+    )
     env = app_state.env
 
     env.process(run_events(app_state, events))

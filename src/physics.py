@@ -34,7 +34,8 @@ class PhysicsEngine:
         self,
         exciters: dict[str, Exciter],
         default_power_on_dbm: float = -100.0,  # TODO make this configurable per-tag and find a good default
-        noise_std_volts: float = 0,  # 0.0001 is 0.1 mV noise
+        noise_std_volts: float = 0,  # 0.0001 is 0.1 mV noise,
+        passive_ref_mag: float = 0,
     ):
         """
         Initialize the physics engine.
@@ -48,6 +49,7 @@ class PhysicsEngine:
         self.exciters = exciters
         self.default_power_on_dbm = default_power_on_dbm
         self.noise_std_volts = noise_std_volts
+        self.passive_ref_mag = passive_ref_mag
 
     def attenuation(
         self, distance: float, wavelength: float, tx_gain_dbi=1.0, rx_gain_dbi=1.0
@@ -167,10 +169,8 @@ class PhysicsEngine:
         Returns:
             complex: The effective reflection coefficient.
         """
-        PASSIVE_REF_MAG = (
-            0.00  # very small amplitude reflection  # TODO Tune this value
-        )
-        PASSIVE_REF = complex(PASSIVE_REF_MAG, 0.0)
+
+        PASSIVE_REF = complex(self.passive_ref_mag, 0.0)
 
         if not self.is_tag_powered(tag) or tag.get_mode().is_listening():
             return PASSIVE_REF
