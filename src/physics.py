@@ -30,7 +30,7 @@ class PhysicsEngine:
     def __init__(
         self, 
         exciter: Exciter,
-        default_power_on_dbm: float = -100.0,  # TODO make this configurable per-tag and find a good default
+        default_power_on_dbm: float = -20.0,  # Typical dbm threshold for passive UHF RFID tags to turn on circuitry
         noise_std_volts: float = 0,  # 0.0001 is 0.1 mV noise
     ):
         """
@@ -145,7 +145,7 @@ class PhysicsEngine:
         """
         power_tag_mw = self.power_from_exciter_at_tag_mw(tag)
         power_tag_dbm = mW_to_dBm(power_tag_mw)
-        threshold_dbm = getattr(tag, "power_on_threshold_dbm", self.default_power_on_dbm)  # TODO Add power_on_threshold_dbm to Tag class
+        threshold_dbm = getattr(tag, "power_on_threshold_dbm", self.default_power_on_dbm)
         return power_tag_dbm >= threshold_dbm
     
     def effective_reflection_coefficient(self, tag: Tag) -> complex:
