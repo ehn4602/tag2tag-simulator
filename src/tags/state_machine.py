@@ -715,6 +715,32 @@ class InputMachine(ExecuteMachine):
             extra={"out_reg": out_reg, "voltage": voltage},
         )
 
+    def _cmd_save_sender_dist_and_freq(self, out_reg1, out_reg2):
+        """
+        Command that saves the distance from and the frequency of the sender to a register.
+
+        Args:
+            out_reg1 (int): Output register for distance.
+            out_reg2 (int): Output register for frequency.
+        """
+        distance, sender_frequency = self.tag_machine.tag.read_sender_dist_and_freq()
+        distance = self.registers[out_reg1] = distance
+        self.logger().debug(
+	        "cmd_save_sender_dist_and_freq(%s): reg[%s] = %s",
+	        out_reg1,
+	        out_reg1,
+	        distance,
+	        extra={"out_reg": out_reg1, "distance from sender": distance},
+        )
+        sender_frequency = self.registers[out_reg2] = sender_frequency
+        self.logger().debug(
+	        "cmd_save_sender_dist_and_freq(%s): reg[%s] = %s",
+	        out_reg2,
+	        out_reg2,
+	        sender_frequency,
+	        extra={"out_reg": out_reg2, "sender frequency": sender_frequency},
+        )
+
     def _cmd_send_bit(self, reg: int):
         """
         Command that sends a bit of data to the processing machine.

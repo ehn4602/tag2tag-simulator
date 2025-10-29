@@ -306,6 +306,34 @@ class Tag(PhysicsObject):
         )
         return voltage
 
+    def read_sender_dist_and_freq(self) -> float:
+        """
+        Assumes the sender is named "Sender"
+        and each tag is a receiver with a name counting up from 00000
+        """
+
+        tag_manager = self.app_state.tag_manager
+        sender = tag_manager.get_by_name("Sender")
+        dx = sender.pos[0] - self.pos[0]
+        dy = sender.pos[1] - self.pos[1]
+        dz = sender.pos[2] - self.pos[2]
+        distance = ((dx ** 2) + (dy ** 2) + (dz ** 2)) ** 0.5
+
+        if self.name != "00000":
+            prev_receiver = tag_manager.get_by_name("{:05d}".format(int(self.name) - 1))
+            prev_dx = sender.pos[0] - prev_receiver.pos[0]
+            prev_dy = sender.pos[1] - prev_receiver.pos[1]
+            prev_dz = sender.pos[2] - prev_receiver.pos[2]
+            prev_distance = ((prev_dx ** 2) + (prev_dy ** 2) + (prev_dz ** 2)) ** 0.5
+        else:
+            prev_distance = 0
+
+        self.logger.info(
+            f"Distance from Sender: {distance}",
+            extra={"distance_from_sender": distance, "previous_distance_from_sender": prev_distance, "sender_frequency": sender.frequency},
+        )
+        return distance, sender.frequency
+
     def to_dict(self):
         """For placing tags into dicts correctly on JSON"""
 
