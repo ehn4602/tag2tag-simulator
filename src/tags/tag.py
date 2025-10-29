@@ -326,7 +326,7 @@ class Tag(PhysicsObject):
             prev_dz = sender.pos[2] - prev_receiver.pos[2]
             prev_distance = ((prev_dx ** 2) + (prev_dy ** 2) + (prev_dz ** 2)) ** 0.5
         else:
-            prev_distance = 0
+            prev_distance = distance
 
         self.logger.info(
             f"Distance from Sender: {distance}",
