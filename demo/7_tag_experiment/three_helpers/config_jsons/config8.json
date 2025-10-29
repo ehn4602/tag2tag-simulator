@@ -1,0 +1,168 @@
+{
+    "Format": "config",
+    "Default": {
+        "exciter_power": 50.0,
+        "gain": 0,
+        "impedance": 50.0,
+        "frequency": 915000000,
+        "input_machine_id": "A",
+        "proccessing_machine_id": "A",
+        "output_machine_id": "B",
+        "chip_impedances": [
+                "0j",
+                "150+0j",
+                "100+50j",
+                "75+75j",
+                "50+0j",
+                "25+75j",
+                "50-50j",
+                "25-25j"
+                
+        ]
+    },
+    "Exciter": {
+        "id": "default",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "power": 1,
+        "gain": 100,
+        "impedance": 50.0,
+        "frequency": 915000000
+    },
+    "Objects": {
+        "Tx1": {
+            "tag_machine": {
+                "input_machine": "EMPTY",
+                "processing_machine": "sender_processing_0",
+                "output_machine": "sender_output_0"
+            },
+            "x": 1.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "chip_impedances": [
+                "1j",
+                "1j",
+                "2+0j"
+        ],
+            "frequency": 915000000
+        },
+        "Hx1": {
+            "tag_machine": {
+                "input_machine": "EMPTY",
+                "processing_machine": "reflector_processing_x",
+                "output_machine": "reflector_init_x"
+            },
+            "x": 2.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "chip_impedances": [
+                "0j",
+                "0j",
+                "1+0j"
+            ],
+            "frequency": 915000000
+        },
+        "Hx2": {
+            "tag_machine": {
+                "input_machine": "EMPTY",
+                "processing_machine": "reflector_processing_2",
+                "output_machine": "reflector_init_2"
+            },
+            "x": 3.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "chip_impedances": [
+                "0j",
+                "0j",
+                "1+0j"
+            ],
+            "frequency": 915000000
+        },
+        "Hx3": {
+            "tag_machine": {
+                "input_machine": "EMPTY",
+                "processing_machine": "reflector_processing_1",
+                "output_machine": "reflector_init_1"
+            },
+            "x": 4.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "chip_impedances": [
+                "0j",
+                "0j",
+                "1+0j"
+            ],
+            "frequency": 915000000
+        },
+        "Hx4": {
+            "tag_machine": {
+                "input_machine": "EMPTY",
+                "processing_machine": "reflector_processing_x",
+                "output_machine": "reflector_output_x"
+            },
+            "x": 5.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "chip_impedances": [
+                "0j",
+                "0j",
+                "1+0j"
+            ],
+            "frequency": 915000000
+        },
+        "Hx5": {
+            "tag_machine": {
+                "input_machine": "EMPTY",
+                "processing_machine": "reflector_processing_0",
+                "output_machine": "reflector_output_0"
+            },
+            "x": 6.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "chip_impedances": [
+                "0j",
+                "0j",
+                "1+0j"
+            ],
+            "frequency": 915000000
+        },
+        "Rx1": {
+            "tag_machine": {
+                "input_machine": "receiver_input_0",
+                "processing_machine": "receiver_processing_0",
+                "output_machine": "receiver_output_0"
+            },
+            "x": 10.0,
+            "y": 0.0,
+            "z": 0.0,
+            "power": 0,
+            "gain": 0,
+            "impedance": 50.0,
+            "chip_impedances": [
+                "0j",
+                "0j",
+                "1+0j"
+            ],
+            "frequency": 915000000
+        }
+    }
+}

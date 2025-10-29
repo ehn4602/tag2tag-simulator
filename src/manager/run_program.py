@@ -6,8 +6,11 @@ from state import AppState
 from tags.tag import Exciter, Tag
 
 # Made into a dedicated method in the case we want logging around this.
+
+
 def dispatch_event(event: Event):
-    logging.info(f"Event dispatched: {event.event_type}", extra=event.log_extra())
+    logging.info(f"Event dispatched: {
+                 event.event_type}", extra=event.log_extra())
     event.run()
 
 
@@ -58,7 +61,6 @@ def run_simulation(
     # Start tag machines
     for tag in tags.values():
         tag.run()
-    
+
     # Run the simulation
-    env.run(until=500)
-    
+    env.run(until=(((7**5)*10) * 2) + 1)

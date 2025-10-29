@@ -1,0 +1,31 @@
+{"time": 0, "level": "INFO", "msg": "[Tag Tx1] Set mode to REFLECT with index 1", "tag": "Tx1", "mode": {"is_listening": false, "chip_index": 1}}
+{"time": 0, "level": "INFO", "msg": "[Tag Hx1] Set mode to REFLECT with index 1", "tag": "Hx1", "mode": {"is_listening": false, "chip_index": 1}}
+{"time": 0, "level": "INFO", "msg": "[Tag Rx1] Set mode to LISTENING", "tag": "Rx1", "mode": {"is_listening": true}}
+{"time": 5, "level": "INFO", "msg": "[Tag Rx1] Read voltage: 3.6525106276240376", "tag": "Rx1", "voltage": 3.6525106276240376}
+{"time": 10, "level": "INFO", "msg": "[Tag Hx1] Set mode to REFLECT with index 2", "tag": "Hx1", "mode": {"is_listening": false, "chip_index": 2}}
+{"time": 15, "level": "INFO", "msg": "[Tag Rx1] Read voltage: 3.649581594832785", "tag": "Rx1", "voltage": 3.649581594832785}
+{"time": 20, "level": "INFO", "msg": "[Tag Hx1] Set mode to REFLECT with index 3", "tag": "Hx1", "mode": {"is_listening": false, "chip_index": 3}}
+{"time": 25, "level": "INFO", "msg": "[Tag Rx1] Read voltage: 3.6500047518048477", "tag": "Rx1", "voltage": 3.6500047518048477}
+{"time": 30, "level": "INFO", "msg": "[Tag Hx1] Set mode to REFLECT with index 4", "tag": "Hx1", "mode": {"is_listening": false, "chip_index": 4}}
+{"time": 35, "level": "INFO", "msg": "[Tag Rx1] Read voltage: 3.6374715703276146", "tag": "Rx1", "voltage": 3.6374715703276146}
+{"time": 40, "level": "INFO", "msg": "[Tag Hx1] Set mode to REFLECT with index 5", "tag": "Hx1", "mode": {"is_listening": false, "chip_index": 5}}
+{"time": 45, "level": "INFO", "msg": "[Tag Rx1] Read voltage: 3.6478261767040063", "tag": "Rx1", "voltage": 3.6478261767040063}
+{"time": 50, "level": "INFO", "msg": "[Tag Hx1] Set mode to REFLECT with index 6", "tag": "Hx1", "mode": {"is_listening": false, "chip_index": 6}}
+{"time": 55, "level": "INFO", "msg": "[Tag Rx1] Read voltage: 3.643405715825901", "tag": "Rx1", "voltage": 3.643405715825901}
+{"time": 60, "level": "INFO", "msg": "[Tag Hx1] Set mode to REFLECT with index 7", "tag": "Hx1", "mode": {"is_listening": false, "chip_index": 7}}
+{"time": 65, "level": "INFO", "msg": "[Tag Rx1] Read voltage: 3.631352626917828", "tag": "Rx1", "voltage": 3.631352626917828}
+{"time": 70, "level": "INFO", "msg": "[Tag Tx1] Set mode to REFLECT with index 4", "tag": "Tx1", "mode": {"is_listening": false, "chip_index": 4}}
+{"time": 70, "level": "INFO", "msg": "[Tag Hx1] Set mode to REFLECT with index 1", "tag": "Hx1", "mode": {"is_listening": false, "chip_index": 1}}
+{"time": 75, "level": "INFO", "msg": "[Tag Rx1] Read voltage: 3.6260959082520676", "tag": "Rx1", "voltage": 3.6260959082520676}
+{"time": 80, "level": "INFO", "msg": "[Tag Hx1] Set mode to REFLECT with index 2", "tag": "Hx1", "mode": {"is_listening": false, "chip_index": 2}}
+{"time": 85, "level": "INFO", "msg": "[Tag Rx1] Read voltage: 3.6231738973727405", "tag": "Rx1", "voltage": 3.6231738973727405}
+{"time": 90, "level": "INFO", "msg": "[Tag Hx1] Set mode to REFLECT with index 3", "tag": "Hx1", "mode": {"is_listening": false, "chip_index": 3}}
+{"time": 95, "level": "INFO", "msg": "[Tag Rx1] Read voltage: 3.6235399548006844", "tag": "Rx1", "voltage": 3.6235399548006844}
+{"time": 100, "level": "INFO", "msg": "[Tag Hx1] Set mode to REFLECT with index 4", "tag": "Hx1", "mode": {"is_listening": false, "chip_index": 4}}
+{"time": 105, "level": "INFO", "msg": "[Tag Rx1] Read voltage: 3.6114090390228992", "tag": "Rx1", "voltage": 3.6114090390228992}
+{"time": 110, "level": "INFO", "msg": "[Tag Hx1] Set mode to REFLECT with index 5", "tag": "Hx1", "mode": {"is_listening": false, "chip_index": 5}}
+{"time": 115, "level": "INFO", "msg": "[Tag Rx1] Read voltage: 3.621316293200942", "tag": "Rx1", "voltage": 3.621316293200942}
+{"time": 120, "level": "INFO", "msg": "[Tag Hx1] Set mode to REFLECT with index 6", "tag": "Hx1", "mode": {"is_listening": false, "chip_index": 6}}
+{"time": 125, "level": "INFO", "msg": "[Tag Rx1] Read voltage: 3.617326951544603", "tag": "Rx1", "voltage": 3.617326951544603}
+{"time": 130, "level": "INFO", "msg": "[Tag Hx1] Set mode to REFLECT with index 7", "tag": "Hx1", "mode": {"is_listening": false, "chip_index": 7}}
+{"time": 135, "level": "INFO", "msg": "[Tag Rx1] Read voltage: 3.605553974742346", "tag": "Rx1", "voltage": 3.605553974742346}

@@ -1,0 +1,5 @@
+{"time": 0, "level": "INFO", "msg": "[Tag Tx1] Set mode to REFLECT with index 1", "tag": "Tx1", "mode": {"is_listening": false, "chip_index": 1}}
+{"time": 0, "level": "INFO", "msg": "[Tag Rx1] Set mode to LISTENING", "tag": "Rx1", "mode": {"is_listening": true}}
+{"time": 5, "level": "INFO", "msg": "[Tag Rx1] Read voltage: 3.637772938780024", "tag": "Rx1", "voltage": 3.637772938780024}
+{"time": 10, "level": "INFO", "msg": "[Tag Tx1] Set mode to REFLECT with index 4", "tag": "Tx1", "mode": {"is_listening": false, "chip_index": 4}}
+{"time": 15, "level": "INFO", "msg": "[Tag Rx1] Read voltage: 3.611703361551263", "tag": "Rx1", "voltage": 3.611703361551263}
