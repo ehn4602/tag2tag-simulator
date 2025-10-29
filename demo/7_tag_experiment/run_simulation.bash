@@ -5,6 +5,15 @@ cd ../..
 # Terminate if command fails
 set -euo pipefail 
 
+# TODO: Implement multiple executions and log routing within the program
+# Easy method until structure of sim changed
+rm demo/7_tag_experiment/zero_helpers/logs/*
+rm demo/7_tag_experiment/one_helper/logs/*
+rm demo/7_tag_experiment/two_helpers/logs/*
+rm demo/7_tag_experiment/three_helpers/logs/*
+rm demo/7_tag_experiment/four_helpers/logs/*
+rm demo/7_tag_experiment/five_helpers/logs/*
+
 echo "Executing simulation with no helper"
 python3 src/main.py --load demo/7_tag_experiment/zero_helpers.txt --run
 sleep 1

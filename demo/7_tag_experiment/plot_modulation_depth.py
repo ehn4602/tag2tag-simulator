@@ -176,6 +176,7 @@ def plot():
     zero_values = parse_log_none()
 
     # print(len(five_dict.values()))
+    # TODO: Add in a KDE, violin plot or ridge plot on top op scatter plot to track the modulaiton depth distribution
 
     y_groups = [
         zero_values,
