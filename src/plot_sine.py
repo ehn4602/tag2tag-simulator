@@ -1,4 +1,5 @@
 import csv
+import cmath
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -11,6 +12,22 @@ from state import AppState
 OUTPUT_CSV = "feedback_phase_sine.csv"
 CONFIG_PATH = "demo/3_tag_test/config_files/config.json"
 
+# --- Generate 36 discrete chip impedances (10° increments) ---
+Z_ant = 50 + 0j            # assume 50Ω antenna impedance
+avoid_infinite = 1e6 + 0j   # used for 0° open-circuit
+N = 36                      # 10° increments → 36 steps
+
+def gamma_from_deg(deg):
+        """Return reflection coefficient for a given phase angle in degrees."""
+        return cmath.exp(1j * np.deg2rad(deg))
+
+def zchip_from_gamma(gamma, Z_ant=Z_ant):
+    """Compute chip impedance that yields reflection coefficient gamma."""
+    # Handle 0° case (Γ=1) → open circuit
+    if abs(abs(gamma) - 1.0) < 1e-12 and abs(np.angle(gamma)) < 1e-9:
+        return avoid_infinite
+    return Z_ant * (1 + gamma) / (1 - gamma)
+
 def run_feedback_phase_sweep():
     app_state = AppState()
     serializer = StateSerializer()
@@ -18,8 +35,14 @@ def run_feedback_phase_sweep():
     # Load 3-tag test case config
     exciter, tags, _, _ = load_json(CONFIG_PATH, serializer, app_state=app_state)
 
+    phases = np.linspace(0, 360, N, endpoint=False)  # 0°,10°,20°,...,350°
+    chip_impedances = [zchip_from_gamma(gamma_from_deg(p)) for p in phases]
+
     # Initialize physics engine
     physics_engine = PhysicsEngine(exciter, tags)
+
+    for tag in tags.values():
+        tag.chip_impedances = chip_impedances
 
     tx1 = tags["TX1"]
     tx2 = tags["TX2"]
@@ -27,7 +50,7 @@ def run_feedback_phase_sweep():
 
     results = []
 
-    phase_shifts = {0: 0, 1: 90, 2: 180}
+    phase_shifts = {i: (i * 10) % 360 for i in range(N)}
 
     num_modes_tx1 = len(tx1.chip_impedances)
     num_modes_tx2 = len(tx2.chip_impedances)
