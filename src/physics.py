@@ -30,7 +30,7 @@ class PhysicsEngine:
     def __init__(
         self, 
         exciter: Exciter,
-        default_power_on_dbm: float = -20.0,  # Typical dbm threshold for passive UHF RFID tags to turn on circuitry
+        default_power_on_dbm: float = -100.0,  # Typical dbm threshold for passive UHF RFID tags to turn on circuitry
         noise_std_volts: float = 0,  # 0.0001 is 0.1 mV noise
     ):
         """
