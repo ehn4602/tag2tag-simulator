@@ -18,7 +18,7 @@ CONFIG_PATH = "demo/3_tag_test/config_files/config.json"
 # --- Generate 36 discrete chip impedances (10° increments) ---
 Z_ant = 50 + 0j            # assume 50Ω antenna impedance
 avoid_infinite = 1e6 + 0j   # used for 0° open-circuit
-N = 12                      # 10° increments → 36 steps
+N = 36                      # 10° increments → 36 steps
 
 def gamma_from_deg(deg):
         """Return reflection coefficient for a given phase angle in degrees."""
