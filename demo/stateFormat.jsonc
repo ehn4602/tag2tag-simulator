@@ -1,0 +1,148 @@
+//this is only meant to be used for understanding the JSON states
+
+{"Examples":                        
+  [{        //State Format:
+            "id": "unique_state_ID_goes_here",       
+            "transitions": {    //a list of valid transitions 
+                "Input argument": [     //Transition input
+                    [
+                        "State command",    //A valid state machine command
+                        "argument(s)"   //All values after index 0 are arguments
+                    ],
+                    "Output_state_ID_goes_here"    
+                ]
+            }
+        },
+        {    //examples of commands
+            "id":"command_examples",
+            "transitions": {
+                "init": [               // State machines always call init when the simulation starts
+                    "sequence",         // Allows multiple commands to run from a single transition change, 
+                                        // This sequence contains all commands that every state machine can use. 
+                    [
+                        "_comment",      // Soley used for adding comments inside states
+                        "This does nothing for the simulation"
+                    ],
+                    [
+                        "mov",                  // Copies value from source to destination
+                        "destination_register: INT",    
+                        "source_register: INT"
+                    ],
+                    [
+                        "load_imm",             // Loads an immediate value into reg
+                        "destination_register: INT",
+                        "value: INT/FLOAT"
+                    ],
+                    [
+                        "sub",                  // Peforms dst := a - b
+                        "destination_register: INT",
+                        "first_operand_register: INT",
+                        "second_operand_register: INT" 
+                    ],
+                    [
+                        "add",                  // Peforms dst := a + b
+                        "destination_register: INT",
+                        "first_operand_register: INT",
+                        "second_operand_register: INT" 
+                    ],
+                    [
+                        "floor",                // Peforms floor(a)
+                        "register: INT"
+                    ],
+                    [
+                        "abs",                 // Peforms abs(a)
+                        "register: INT"
+                    ],
+                    [
+                        /*
+                        Returns "lt", "eq" or "gt" to itself depending on 
+                        how a and b are to each other 
+                        "lt" if a < B
+                        "eq" if a == b
+                        "gt" if a > b
+                        */
+                        "compare",          
+                        "first_operand_register: INT",
+                        "second_operand_register: INT"
+                    ],
+                    [
+                        "self_trigger", // Gives the symbol to itself to automatically transition states
+                        "symbol: STR"
+                    ],
+                    [
+                        /*
+                        Sets up a timer using the provided register's value.
+                        Timer using Simpy time as an unit. when timer is set off it 
+                        gives this state machine the symbol "on_timer"
+                        */
+                        "set_timer",        // starts a timer    
+                        "register: INT" 
+                    ],
+                    "input_machine_commands"
+                ],
+                "input_machine_commands" : [
+                    "sequence",
+                    [
+                        "save_voltage",             // Saves the current voltage this tag is recieving to a register
+                        "output_register: INT"     
+                    ],
+                    [
+                        "send_bit",                 // Sends a bit to the processing state machine loaded in the given register
+                        "input_register: INT"
+                    ],
+                    [
+                        "forward_voltage"           // Sends the current voltage to the processing machine
+                    ],
+                    "proccessing_machine_commands"
+                ],
+                "processing_machine_commands": [
+                    "sequence",
+                    [
+                        "send_int_out",             // Sends an integer from a register to the output machine
+                        "input_register: INT"       
+                    ],
+                    [
+                        "send_int_log",             // Sends an integer to an associated logger
+                        "input_register: INT"
+                    ],
+                    [
+                        "send_str_log",             // Send a string to an associated logger
+                        "STRING"
+                    ],
+                    [
+                        "store_mem_imm",                     // Stores immediate values to memory
+                        "address_register: INT",             // Has Destination address
+                        "value: (Union[tuple[int,], int])"   // Values to store
+                    ],
+                    [
+                        "load_mem",                 // loads a value from memory
+                        "output_register",          // Stores value loaded from memory into this register
+                        "address_register: INT"     // Contains the address to load from
+                    ],
+                    "output_machine_commands"
+                ],
+                "output_machine_commands": [
+                    "sequence",
+                    [
+                        "set_antenna",           // Sets the antenna to a specific mode from a register 
+                        "input_register: INT"
+
+                    ],
+                    [
+                        "set_listen" // Sets the antenna to the tag's envelope detector (index 0)
+                    ],
+                    [
+                        "queue_processing" // Wakes up the proccessing machine of this tag
+
+                    ]
+                ]
+
+            }
+        }]
+}
+
+
+
+
+
+ 

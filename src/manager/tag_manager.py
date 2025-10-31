@@ -4,19 +4,24 @@ from tags.tag import Exciter, Tag
 
 class TagManager:
     """
-    A store of Tag instances, along with an Exciter.
+    A store of Tag instances, along with Exciters.
     """
 
-    def __init__(self, exciter: Exciter, tags: dict[str, Tag] = dict()):
+    def __init__(
+        self,
+        exciters: dict[str, Exciter],
+        tags: dict[str, Tag] = dict(),
+        passive_ref_mag: float = 0,
+    ):
         """
         Creates a TagManager.
 
         Args:
-            exciter (Exciter): The exciter.
+            exciters (dict[str, Exciter]): A dictionary mapping exciter names to Exciter instances.
             tags (dict[str, Tag]): A dictionary mapping tag names to Tag instances.
         """
         self.tags: dict[str, Tag] = tags
-        self.physics_engine = PhysicsEngine(exciter)
+        self.physics_engine = PhysicsEngine(exciters, passive_ref_mag=passive_ref_mag)
 
     def add_tags(self, *tags: Tag) -> None:
         """

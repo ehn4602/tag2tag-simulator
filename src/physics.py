@@ -4,8 +4,10 @@ from typing import TYPE_CHECKING, Iterable
 import numpy as np
 
 import scipy.spatial.distance as dist
-from scipy.constants import c, e, pi
+from scipy.constants import c, pi
 import random
+import cmath
+
 
 from tags.tag import TagMode
 
@@ -18,8 +20,10 @@ def mW_to_dBm(mw: float) -> float:
         return -999.0
     return 10.0 * log10(mw)
 
+
 def dBm_to_mW(dbm: float) -> float:
     return 10 ** (dbm / 10.0)
+
 
 def dbi_to_linear(dbi: float) -> float:
     """Convert gain in dBi to linear scale."""
@@ -28,23 +32,25 @@ def dbi_to_linear(dbi: float) -> float:
 
 class PhysicsEngine:
     def __init__(
-        self, 
-        exciter: Exciter,
-        default_power_on_dbm: float = -100.0,  # Typical dbm threshold for passive UHF RFID tags to turn on circuitry
-        noise_std_volts: float = 0,  # 0.0001 is 0.1 mV noise
+        self,
+        exciters: dict[str, Exciter],
+        default_power_on_dbm: float = -100.0,  # TODO make this configurable per-tag and find a good default
+        noise_std_volts: float = 0,  # 0.0001 is 0.1 mV noise,
+        passive_ref_mag: float = 0,
     ):
         """
         Initialize the physics engine.
 
         Parameters:
-            exciter (Exciter): The exciter object.
+            exciters (dict[str, Exciter]): The dictionary of exciter objects.
             default_power_on_dbm (float): The default power threshold (in dBm) for a tag to be considered "powered".
             noise_std_volts (float): Standard deviation of Gaussian noise (in volts) added to envelope-detector output.
                                    Default is 0 (no noise).
         """
-        self.exciter = exciter
+        self.exciters = exciters
         self.default_power_on_dbm = default_power_on_dbm
         self.noise_std_volts = noise_std_volts
+        self.passive_ref_mag = passive_ref_mag
 
         # Tag topology caching
         self._cached_state = {
@@ -82,7 +88,11 @@ class PhysicsEngine:
 
         if distance < reactive_limit:
             # Near-field region (reactive near-field, use approximate 1/d^3 model)
-            return (tx_gain * rx_gain * (wavelength ** 2)) / ((4 * pi * reactive_limit) ** 2) * (reactive_limit / distance) ** 3
+            return (
+                (tx_gain * rx_gain * (wavelength**2))
+                / ((4 * pi * reactive_limit) ** 2)
+                * (reactive_limit / distance) ** 3
+            )
         else:
             # Far-field region (Friis transmission equation, 1/d^2 model)
             num = tx_gain * rx_gain * (wavelength**2)
@@ -91,7 +101,7 @@ class PhysicsEngine:
 
     def get_sig_tx_rx(self, tx: PhysicsObject, rx: Tag):
         """
-        Gets the signal from a tag or exciter to another tag
+        Gets the signal from a tag or an exciter to another tag
 
         Parameters:
             tx (PhysicsObject): The transmitting object.
@@ -102,11 +112,13 @@ class PhysicsEngine:
         distance = dist.euclidean(tx.get_position(), rx.get_position())
         wavelen = c / tx.get_frequency()
         att = sqrt(self.attenuation(distance, wavelen, tx.get_gain(), rx.get_gain()))
-        return att * (e ** (1j * 2 * pi * distance / wavelen))
-    
-    def power_from_exciter_at_tag_mw(self, tag: Tag) -> float:
+        return att * (
+            cmath.exp(1j * 2 * pi * distance / wavelen)
+        )  # Use Cmath for e not e from scipy
+
+    def power_from_exciters_at_tag_mw(self, tag: Tag) -> float:
         """
-        Gets the power (in mW) delivered from the engine's exciter to the tag antenna input using Friis transmission formula
+        Gets the power (in mW) delivered from the engine's exciters to the tag antenna input using Friis transmission formula
 
         Parameters:
             tag (Tag): The receiving tag.
@@ -119,17 +131,22 @@ class PhysicsEngine:
 
         # TODO Check if gains are in linear directivities or dBi(if DBI, convert to linear)
         """
-        ex = self.exciter
-        power_tx_mw = ex.get_power()
-        if power_tx_mw <= 0:
-            return 0.0
-        
-        distance = dist.euclidean(ex.get_position(), tag.get_position())
-        wavelength = c / ex.get_frequency()
+        exs = self.exciters
+        power_rxs = 0.0
+        for ex in exs.values():
+            power_tx_mw = ex.get_power()
+            if power_tx_mw <= 0:
+                continue
 
-        power_rx = power_tx_mw * self.attenuation(distance, wavelength, ex.get_gain(), tag.get_gain())
-        return max(power_rx, 0.0)
-    
+            distance = dist.euclidean(ex.get_position(), tag.get_position())
+            wavelength = c / ex.get_frequency()
+
+            power_rx = power_tx_mw * self.attenuation(
+                distance, wavelength, ex.get_gain(), tag.get_gain()
+            )
+            power_rxs += max(power_rx, 0.0)
+        return power_rxs
+
     def is_tag_powered(self, tag: Tag) -> bool:
         """
         Determines whether a tag has sufficient harvested power to run logic ("listening" capability).
@@ -143,11 +160,13 @@ class PhysicsEngine:
             - per-tag attribute `power_on_threshold_dbm` (if present)
             - otherwise uses engine.default_power_on_dbm
         """
-        power_tag_mw = self.power_from_exciter_at_tag_mw(tag)
+        power_tag_mw = self.power_from_exciters_at_tag_mw(tag)
         power_tag_dbm = mW_to_dBm(power_tag_mw)
-        threshold_dbm = getattr(tag, "power_on_threshold_dbm", self.default_power_on_dbm)
+        threshold_dbm = getattr(
+            tag, "power_on_threshold_dbm", self.default_power_on_dbm
+        )  # TODO Add power_on_threshold_dbm to Tag class
         return power_tag_dbm >= threshold_dbm
-    
+
     def effective_reflection_coefficient(self, tag: Tag) -> complex:
         """
         Returns the complex reflection coefficient used when the tag is contributing to the channel.
@@ -161,12 +180,12 @@ class PhysicsEngine:
         Returns:
             complex: The effective reflection coefficient.
         """
-        PASSIVE_REF_MAG = 0.01  # very small amplitude reflection  # TODO Tune this value
-        PASSIVE_REF = complex(PASSIVE_REF_MAG, 0.0)
+
+        PASSIVE_REF = complex(self.passive_ref_mag, 0.0)
 
         if not self.is_tag_powered(tag) or tag.get_mode().is_listening():
             return PASSIVE_REF
-        
+
         # Otherwise tag is actively reflecting (transmit index)
         Z_ant = tag.get_impedance()
         Z_chip = tag.get_chip_impedance()
@@ -207,7 +226,7 @@ class PhysicsEngine:
         Returns:
             float: The voltage at the receiving tag's envelope detector input.
         """
-        ex = self.exciter
+        exs = self.exciters
         rx_impedance = receiving_tag.get_impedance()
 
         # --- Collect all tag names ---
@@ -260,9 +279,13 @@ class PhysicsEngine:
             v_rms = max(0.0, random.gauss(v_rms, self.noise_std_volts))
 
         return v_rms
-    
+
     def modulation_depth_for_tx_rx(
-        self, tags: dict[str, Tag], tx: Tag, rx: Tag, tx_indices: Iterable[int] | None = None
+        self,
+        tags: dict[str, Tag],
+        tx: Tag,
+        rx: Tag,
+        tx_indices: Iterable[int] | None = None,
     ) -> float:
         """
         Compute modulation depth metric for a specific (tx, rx) pair.
@@ -287,7 +310,6 @@ class PhysicsEngine:
         else:
             idx0, idx1 = tuple(tx_indices)
 
-
         original_mode = tx.get_mode()
 
         # Get voltage when tx is in state at index idx0
@@ -300,5 +322,5 @@ class PhysicsEngine:
 
         # Restore original mode
         tx.set_mode(original_mode)
-        
+
         return abs(v1 - v0)
